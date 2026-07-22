@@ -1,0 +1,21 @@
+fret-trainer/
+├── src/
+│   ├── components/
+│   │   ├── fretboard/
+│   │   │   ├── Fretboard.jsx         # Visual SVG/Grid Fretboard
+│   │   │   └── FretMarker.jsx        # Inlay dots
+│   │   ├── session/
+│   │   │   ├── DisplayPrompt.jsx     # Distance-friendly prompt view
+│   │   │   ├── VoiceController.jsx   # SpeechRecognition hook/component
+│   │   │   └── SessionSummary.jsx    # End-of-round stats
+│   │   ├── settings/
+│   │   │   └── InstrumentBuilder.jsx # Custom tuning/string builder
+│   │   └── ui/                       # Buttons, Modals, Sliders
+│   ├── lib/
+│   │   ├── fretLogic.js              # Pure math functions for note lookups
+│   │   ├── supabase.js               # Supabase DB client setup
+│   │   └── voice.js                  # Web Speech API handler
+│   ├── App.jsx
+│   └── main.jsx
+├── .env.local
+└── tailwind.config.js

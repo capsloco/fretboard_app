@@ -12,6 +12,7 @@ export const supabase = isSupabaseConfigured
 // LocalStorage Fallback Keys
 const LOCAL_CUSTOM_INSTRUMENTS_KEY = 'fretflow_custom_instruments';
 const LOCAL_SESSION_HISTORY_KEY = 'fretflow_session_history';
+const LOCAL_USER_SETTINGS_KEY = 'fretflow_user_settings';
 
 /**
  * Auth Helpers
@@ -35,6 +36,49 @@ export async function getCurrentUser() {
   if (!supabase) return null;
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+}
+
+/**
+ * User Preference Settings Data Methods (LocalStorage + Supabase User Metadata)
+ */
+export async function saveUserSettings(settings, userId = null) {
+  // Always update LocalStorage for instant zero-latency loading
+  try {
+    localStorage.setItem(LOCAL_USER_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn('Failed to save settings to localStorage:', e);
+  }
+
+  // If logged in via Supabase, sync settings to user metadata
+  if (supabase && userId) {
+    try {
+      await supabase.auth.updateUser({
+        data: { fretflow_settings: settings }
+      });
+    } catch (e) {
+      console.warn('Failed to sync user metadata in Supabase:', e);
+    }
+  }
+}
+
+export async function loadUserSettings(userId = null) {
+  // 1. Try Supabase user metadata if user logged in
+  if (supabase && userId) {
+    try {
+      const user = await getCurrentUser();
+      if (user?.user_metadata?.fretflow_settings) {
+        return user.user_metadata.fretflow_settings;
+      }
+    } catch (e) {}
+  }
+
+  // 2. Fallback to LocalStorage
+  try {
+    const raw = localStorage.getItem(LOCAL_USER_SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 /**

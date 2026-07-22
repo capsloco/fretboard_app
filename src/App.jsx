@@ -6,7 +6,7 @@ import VoiceController from './components/session/VoiceController';
 import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import { generatePrompt, INSTRUMENT_PRESETS } from './lib/fretLogic';
-import { loadCustomInstruments, savePracticeSession, getCurrentUser } from './lib/supabase';
+import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -51,20 +51,56 @@ export default function App() {
 
   const timerRef = useRef(null);
 
-  // Load custom instruments & auth on mount
+  // Load saved user settings, custom instruments & auth on mount
   useEffect(() => {
     async function initData() {
       const u = await getCurrentUser();
       setUser(u);
+      
       const customInsts = await loadCustomInstruments(u?.id);
       setUserCustomInstruments(customInsts);
+
+      const savedSettings = await loadUserSettings(u?.id);
+      if (savedSettings) {
+        if (savedSettings.config) {
+          setConfig(prev => ({ ...prev, ...savedSettings.config }));
+        }
+        if (savedSettings.instrumentId) {
+          const allInsts = [...INSTRUMENT_PRESETS, ...customInsts];
+          const matched = allInsts.find(i => i.id === savedSettings.instrumentId);
+          if (matched) setCurrentInstrument(matched);
+        }
+      }
     }
     initData();
   }, []);
 
+  // Auto-persist user settings on config / instrument changes
+  const saveSettingsToStorage = (updatedConfig, updatedInst) => {
+    const targetConfig = updatedConfig || config;
+    const targetInst = updatedInst || currentInstrument;
+    saveUserSettings({
+      config: targetConfig,
+      instrumentId: targetInst.id,
+      instrument: targetInst
+    }, user?.id);
+  };
+
   // Update session config
   const handleConfigChange = (key, value) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+    setConfig(prev => {
+      const updated = { ...prev, [key]: value };
+      saveSettingsToStorage(updated, currentInstrument);
+      return updated;
+    });
+  };
+
+  const handleInstrumentSelect = (inst) => {
+    setCurrentInstrument(inst);
+    if (config.maxFret > inst.fretCount) {
+      handleConfigChange('maxFret', inst.fretCount);
+    }
+    saveSettingsToStorage(config, inst);
   };
 
   // Start new practice session
@@ -180,14 +216,6 @@ export default function App() {
     const accuracy = stats.totalPrompts > 0 
       ? Math.round((stats.correctCount / stats.totalPrompts) * 100)
       : 0;
-
-    const finalSummaryStats = {
-      ...stats,
-      accuracyPct: accuracy,
-      durationSeconds: durationSecs,
-      instrumentTitle: currentInstrument.title,
-      sessionType: config.sessionMode
-    };
 
     setSessionState('summary');
 
@@ -371,12 +399,7 @@ export default function App() {
         config={config}
         onChangeConfig={handleConfigChange}
         currentInstrument={currentInstrument}
-        onSelectInstrument={(inst) => {
-          setCurrentInstrument(inst);
-          if (config.maxFret > inst.fretCount) {
-            handleConfigChange('maxFret', inst.fretCount);
-          }
-        }}
+        onSelectInstrument={handleInstrumentSelect}
         userCustomInstruments={userCustomInstruments}
         onInstrumentSaved={(savedInst) => {
           setUserCustomInstruments(prev => [savedInst, ...prev]);

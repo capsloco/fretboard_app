@@ -199,7 +199,7 @@ export default function VoiceController({ onCommand }) {
                   <Zap className="w-4 h-4" /> 1. Pluck / Snap Audio Trigger (Works Everywhere)
                 </div>
                 <div className="text-xs text-slate-300">
-                  Pluck a string loudly, snap your fingers, or tap your guitar body! FretFlow registers any audio peak hands-free.
+                  Pluck a string loudly, snap your fingers, or tap your guitar body! FretLearn registers any audio peak hands-free.
                 </div>
               </div>
 

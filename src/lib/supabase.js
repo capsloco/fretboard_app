@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -10,9 +10,9 @@ export const supabase = isSupabaseConfigured
   : null;
 
 // LocalStorage Fallback Keys
-const LOCAL_CUSTOM_INSTRUMENTS_KEY = 'fretflow_custom_instruments';
-const LOCAL_SESSION_HISTORY_KEY = 'fretflow_session_history';
-const LOCAL_USER_SETTINGS_KEY = 'fretflow_user_settings';
+const LOCAL_CUSTOM_INSTRUMENTS_KEY = 'fretlearn_custom_instruments';
+const LOCAL_SESSION_HISTORY_KEY = 'fretlearn_session_history';
+const LOCAL_USER_SETTINGS_KEY = 'fretlearn_user_settings';
 
 /**
  * Auth Helpers
@@ -38,6 +38,14 @@ export async function getCurrentUser() {
   return user;
 }
 
+export function subscribeToAuthChanges(callback) {
+  if (!supabase) return { unsubscribe: () => {} };
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user || null, event);
+  });
+  return subscription;
+}
+
 /**
  * User Preference Settings Data Methods (LocalStorage + Supabase User Metadata)
  */
@@ -53,7 +61,7 @@ export async function saveUserSettings(settings, userId = null) {
   if (supabase && userId) {
     try {
       await supabase.auth.updateUser({
-        data: { fretflow_settings: settings }
+        data: { fretlearn_settings: settings }
       });
     } catch (e) {
       console.warn('Failed to sync user metadata in Supabase:', e);
@@ -66,8 +74,8 @@ export async function loadUserSettings(userId = null) {
   if (supabase && userId) {
     try {
       const user = await getCurrentUser();
-      if (user?.user_metadata?.fretflow_settings) {
-        return user.user_metadata.fretflow_settings;
+      if (user?.user_metadata?.fretlearn_settings) {
+        return user.user_metadata.fretlearn_settings;
       }
     } catch (e) {}
   }

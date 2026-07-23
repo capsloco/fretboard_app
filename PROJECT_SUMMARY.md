@@ -1,4 +1,4 @@
-# 🎸 FretFlow / FretLearn — Project Summary & Architecture Guide
+# 🎸 FretLearn — Project Summary & Architecture Guide
 
 > **Live Production URL**: [https://fretlearn.app](https://fretlearn.app) (also [https://www.fretlearn.app](https://www.fretlearn.app))  
 > **GitHub Repository**: [https://github.com/capsloco/fretboard_app](https://github.com/capsloco/fretboard_app)  
@@ -9,7 +9,7 @@
 
 ## 🚀 Overview & Vision
 
-**FretFlow (FretLearn)** is a high-visibility, hands-free visual training application for guitarists and bassists. Players place their device 4 to 6 feet away at eye level, pick up their physical instrument, and react to note prompts displayed on screen using voice recognition, audio pluck triggers, or footswitch hotkeys.
+**FretLearn** is a high-visibility, hands-free visual training application for guitarists and bassists. Players place their device 4 to 6 feet away at eye level, pick up their physical instrument, and react to note prompts displayed on screen using voice recognition, audio pluck triggers, or footswitch hotkeys.
 
 ---
 
@@ -42,7 +42,7 @@
 * **Fret Range Boundaries**: Open position (0–5), Mid neck (5–12), Upper frets (12–24), or custom dual sliders.
 
 ### 4. 💾 State Persistence
-* **Guest Users**: Settings, custom tunings, and fret boundaries auto-save to `localStorage` (`fretflow_user_settings`, `fretflow_custom_instruments`, `fretflow_session_history`).
+* **Guest Users**: Settings, custom tunings, and fret boundaries auto-save to `localStorage` (`fretlearn_user_settings`, `fretlearn_custom_instruments`, `fretlearn_session_history`).
 * **Logged-in Users**: Preferences sync to Supabase `user_metadata`, custom setups to `custom_instruments` DB table, and stats to `practice_sessions` DB table.
 
 ---
@@ -73,6 +73,7 @@
     │   ├── settings/
     │   │   └── InstrumentBuilder.jsx    # Custom tuning & string count configurator
     │   └── ui/
+    │       ├── AuthModal.jsx            # Google OAuth, Magic Link & Email authentication modal
     │       ├── FretRangeSlider.jsx      # Fret range boundary sliders & position presets
     │       ├── Header.jsx               # Header bar with logo, active instrument pill, Supabase auth
     │       └── SessionSettingsModal.jsx # Session & mechanics settings modal

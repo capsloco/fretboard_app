@@ -5,8 +5,9 @@ import Fretboard from './components/fretboard/Fretboard';
 import VoiceController from './components/session/VoiceController';
 import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
+import AuthModal from './components/ui/AuthModal';
 import { generatePrompt, INSTRUMENT_PRESETS } from './lib/fretLogic';
-import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings } from './lib/supabase';
+import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -15,8 +16,10 @@ export default function App() {
   const [userCustomInstruments, setUserCustomInstruments] = useState([]);
   const [user, setUser] = useState(null);
 
-  // Settings Modal State
+  // Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('normal');
 
   // Session Parameters State
   const [config, setConfig] = useState({
@@ -73,6 +76,23 @@ export default function App() {
       }
     }
     initData();
+
+    // Check if user landed via password reset link (URL hash or search param contains recovery type)
+    if (window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')) {
+      setAuthModalMode('update_password');
+      setIsAuthOpen(true);
+    }
+
+    const sub = subscribeToAuthChanges((u, event) => {
+      setUser(u);
+      if (event === 'PASSWORD_RECOVERY' || window.location.hash.includes('type=recovery')) {
+        setAuthModalMode('update_password');
+        setIsAuthOpen(true);
+      }
+    });
+    return () => {
+      if (sub?.unsubscribe) sub.unsubscribe();
+    };
   }, []);
 
   // Auto-persist user settings on config / instrument changes
@@ -234,10 +254,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
-      {/* Header Bar */}
+      {/* Header */}
       <Header
         currentInstrument={currentInstrument}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
         user={user}
         setUser={setUser}
       />
@@ -389,7 +410,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="w-full border-t border-slate-800/60 py-4 px-6 text-center text-xs font-mono text-slate-400 bg-slate-950">
-        FretFlow Hands-Free Trainer • React + Vite + Web Speech API
+        © {new Date().getFullYear()} FretLearn
       </footer>
 
       {/* Settings Modal */}
@@ -405,6 +426,18 @@ export default function App() {
           setUserCustomInstruments(prev => [savedInst, ...prev]);
         }}
         onStartSession={startNewSession}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => {
+          setIsAuthOpen(false);
+          setAuthModalMode('normal');
+        }}
+        user={user}
+        setUser={setUser}
+        initialMode={authModalMode}
       />
     </div>
   );

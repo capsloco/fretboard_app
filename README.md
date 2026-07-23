@@ -1,8 +1,8 @@
-# 🎸 FretFlow — Hands-Free Fretboard Trainer 🚀
+# 🎸 FretLearn — Hands-Free Fretboard Trainer 🚀
 
 > **Master your fretboard from 4 to 6 feet away — zero hands on your screen required!** ⚡
 
-Welcome to **FretFlow**, the ultimate visual training companion for guitarists, bassists, and string instrument players! ⚡ Pick up your physical instrument, set your device down at eye level, start a practice round, and call out your results hands-free using voice commands or massive high-contrast buttons! 🎙️🔥
+Welcome to **FretLearn**, the ultimate visual training companion for guitarists, bassists, and string instrument players! ⚡ Pick up your physical instrument, set your device down at eye level, start a practice round, and call out your results hands-free using voice commands or massive high-contrast buttons! 🎙️🔥
 
 ---
 
@@ -20,7 +20,7 @@ Welcome to **FretFlow**, the ultimate visual training companion for guitarists, 
 
 ### 🎮 3. Game & Practice Modes
 * **🎯 Pass / Fail Mode (Tracked)**: React to prompts, track your round accuracy %, practice duration, speed, and build epic 🔥 **Streaks**!
-* **⏱️ Timed Flashcard Mode (No Tracking)**: Set your custom timer (e.g. *4 seconds per note for 5 minutes*) and let FretFlow loop automatically.
+* **⏱️ Timed Flashcard Mode (No Tracking)**: Set your custom timer (e.g. *4 seconds per note for 5 minutes*) and let FretLearn loop automatically.
 
 ### 🎸 4. Custom Instrument Engine (4 to 8 Strings)
 * **Preset Standards**:

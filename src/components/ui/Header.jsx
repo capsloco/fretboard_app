@@ -1,15 +1,26 @@
-import React from 'react';
-import { Guitar, Sliders, LogIn, LogOut, User as UserIcon } from 'lucide-react';
-import { isSupabaseConfigured, signInWithGoogle, signOut } from '../../lib/supabase';
+import React, { useState, useRef, useEffect } from 'react';
+import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { signInWithGoogle, signOut } from '../../lib/supabase';
 
-export default function Header({ currentInstrument, onOpenSettings, user, setUser }) {
-  const handleAuth = async () => {
-    if (user) {
-      await signOut();
-      setUser(null);
-    } else {
-      await signInWithGoogle();
+export default function Header({ currentInstrument, onOpenSettings, onOpenAuth, user, setUser }) {
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
     }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    setIsUserMenuOpen(false);
+    await signOut();
+    setUser(null);
   };
 
   return (
@@ -23,14 +34,11 @@ export default function Header({ currentInstrument, onOpenSettings, user, setUse
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white m-0 leading-tight">
-                FretFlow
+                FretLearn
               </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-extrabold uppercase bg-cyan-950 text-cyan-300 border border-cyan-800/60">
-                MVP
-              </span>
             </div>
             <p className="text-[11px] font-mono text-slate-400 hidden sm:block">
-              Hands-Free High-Visibility Fretboard Trainer
+              Master the Fretboard
             </p>
           </div>
         </div>
@@ -55,24 +63,53 @@ export default function Header({ currentInstrument, onOpenSettings, user, setUse
             <span className="hidden sm:inline">Configure</span>
           </button>
 
-          {/* Supabase Auth Login Button */}
-          {isSupabaseConfigured && (
+          {/* User Auth Profile / Login Dropdown */}
+          {user ? (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-xs font-semibold text-slate-200 transition-all shadow-sm"
+              >
+                <div className="w-6 h-6 rounded-lg bg-emerald-950 border border-emerald-800 flex items-center justify-center">
+                  <UserIcon className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
+                <span className="max-w-[120px] truncate font-mono text-slate-200">
+                  {user.email ? user.email.split('@')[0] : 'Account'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* User Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-3 z-50 animate-fade-in">
+                  <div className="px-2 py-1.5 mb-2 border-b border-slate-800">
+                    <div className="text-xs font-bold text-white truncate">{user.email}</div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 mt-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Cloud Sync Enabled</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-950/50 hover:text-rose-300 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
             <button
-              onClick={handleAuth}
+              onClick={() => {
+                if (onOpenAuth) onOpenAuth();
+                else signInWithGoogle();
+              }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-semibold transition-colors"
             >
-              {user ? (
-                <>
-                  <UserIcon className="w-4 h-4 text-emerald-400" />
-                  <span className="hidden sm:inline">Sign Out</span>
-                  <LogOut className="w-3.5 h-3.5 text-slate-500" />
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4 text-cyan-400" />
-                  <span>Google Sign In</span>
-                </>
-              )}
+              <LogIn className="w-4 h-4 text-cyan-400" />
+              <span>Sign In</span>
             </button>
           )}
         </div>

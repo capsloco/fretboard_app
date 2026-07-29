@@ -366,6 +366,11 @@ export function generatePrompt({
       }
     }
 
+    const validPositions = positionsOnString.map(fret => ({
+      stringIndex: stringIndex,
+      fret: fret
+    }));
+
     return {
       id: `${Date.now()}-${Math.random()}`,
       note: selectedNote,
@@ -374,6 +379,7 @@ export function generatePrompt({
       stringDisplayNumber: displayStringNum,
       stringOpenNote: openNote,
       targetFrets: positionsOnString,
+      validPositions: validPositions,
       promptText: `Find ${selectedNote} on String ${displayStringNum} (${openNote})`,
       subText: `Frets ${minFret}–${maxFret}`
     };

@@ -104,7 +104,7 @@ export default function Fretboard({
                         <div className="z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-400 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center shadow-[0_0_15px_rgba(52,211,153,0.9)] animate-bounce-subtle ring-2 ring-emerald-200">
                           {currentNote}
                         </div>
-                      ) : revealed && isTargetNoteMatch ? (
+                      ) : revealed && isTargetNoteMatch && (!highlightPositions || highlightPositions.length === 0) ? (
                         <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-cyan-900/80 text-cyan-200 font-bold text-xs sm:text-sm flex items-center justify-center border border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
                           {currentNote}
                         </div>

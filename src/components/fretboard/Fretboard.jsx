@@ -69,8 +69,9 @@ export default function Fretboard({
       {/* Fretboard Grid Container */}
       <div className="relative min-w-[650px] border-t border-b border-slate-700/80 rounded-lg bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-1 shadow-inner">
         {displayStrings.map((str, displayIdx) => {
-          // Calculate string thickness based on position (thicker for lower pitch strings)
-          const thicknessPx = Math.max(1, Math.min(5, (str.originalIndex + 1) * 0.7));
+          // Calculate string thickness based on pitch (thinnest for High Pitch S1, thickest for Low Pitch S_N)
+          const maxIndex = (instrument.stringCount || 6) - 1;
+          const thicknessPx = Math.max(1, Math.min(5.5, 1 + (maxIndex - str.originalIndex) * 0.8));
 
           return (
             <div key={`string-${str.originalIndex}`} className="relative flex items-center h-10 sm:h-14 group">

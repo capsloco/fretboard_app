@@ -38,15 +38,22 @@ export default function Fretboard({
   };
 
   return (
-    <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent">
+    <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent">
       {/* Top Fret Header Labels */}
-      <div className="flex items-center mb-2 min-w-[700px]">
-        <div className="w-20 sm:w-28 text-center text-xs font-mono tracking-wider font-semibold text-slate-500 uppercase">
+      <div className="flex items-center mb-1 sm:mb-2 min-w-[650px]">
+        <div className="w-16 sm:w-24 text-center text-[10px] sm:text-xs font-mono tracking-wider font-semibold text-slate-500 uppercase">
           String
         </div>
-        <div className="flex-1 grid gap-0 text-center" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(40px, 1fr))` }}>
+        <div className="flex-1 grid gap-0 text-center" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(36px, 1fr))` }}>
           {fretsToDisplay.map(fret => (
-            <div key={`head-${fret}`} className="text-xs font-mono text-slate-400 font-semibold py-1">
+            <div
+              key={`head-${fret}`}
+              className={`text-[10px] sm:text-xs font-mono font-bold py-1 ${
+                fret === 0
+                  ? 'text-slate-950 bg-slate-100 rounded-t shadow-sm border-r-2 border-slate-300 font-extrabold'
+                  : 'text-slate-400'
+              }`}
+            >
               {fret === 0 ? 'NUT' : `F${fret}`}
             </div>
           ))}
@@ -54,29 +61,29 @@ export default function Fretboard({
       </div>
 
       {/* Fretboard Grid Container */}
-      <div className="relative min-w-[700px] border-t border-b border-slate-700/80 rounded-lg bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-2 shadow-inner">
+      <div className="relative min-w-[650px] border-t border-b border-slate-700/80 rounded-lg bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-1 shadow-inner">
         {displayStrings.map((str, displayIdx) => {
           // Calculate string thickness based on position (thicker for lower pitch strings)
           const thicknessPx = Math.max(1, Math.min(5, (str.originalIndex + 1) * 0.7));
 
           return (
-            <div key={`string-${str.originalIndex}`} className="relative flex items-center h-14 sm:h-16 group">
+            <div key={`string-${str.originalIndex}`} className="relative flex items-center h-10 sm:h-14 group">
               {/* String Wire Visual */}
               <div 
-                className="absolute left-20 sm:left-28 right-0 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 z-0 opacity-80 group-hover:opacity-100 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)]" 
+                className="absolute left-16 sm:left-24 right-0 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 z-0 opacity-80 group-hover:opacity-100 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)]" 
                 style={{ height: `${thicknessPx}px` }} 
               />
 
               {/* String Header Label */}
-              <div className="w-20 sm:w-28 z-10 flex items-center justify-between pr-4 pl-2 font-mono border-r border-slate-700/60 bg-slate-950/80 h-full">
-                <span className="text-xs font-semibold text-slate-400">Str {str.displayNumber}</span>
-                <span className="text-sm font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/50">
+              <div className="w-16 sm:w-24 z-10 flex items-center justify-between pr-2 sm:pr-4 pl-1.5 font-mono border-r border-slate-700/60 bg-slate-950/90 h-full">
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-400">S{str.displayNumber}</span>
+                <span className="text-xs sm:text-sm font-bold text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50">
                   {str.openNote}
                 </span>
               </div>
 
               {/* Fret Cells for this string */}
-              <div className="flex-1 grid h-full z-10" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(40px, 1fr))` }}>
+              <div className="flex-1 grid h-full z-10" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(36px, 1fr))` }}>
                 {fretsToDisplay.map(fret => {
                   const currentNote = getNoteAtFret(str.openNote, fret, displayMode);
                   const isHighlighted = isPositionHighlighted(str.originalIndex, fret);
@@ -90,7 +97,7 @@ export default function Fretboard({
                       onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
                       className={`relative flex items-center justify-center cursor-pointer transition-all duration-200 ${
                         isNut 
-                          ? 'border-r-4 border-slate-400 bg-slate-900/60' 
+                          ? 'border-r-[6px] border-slate-100 bg-slate-950 shadow-[0_0_10px_rgba(255,255,255,0.7)]' 
                           : 'border-r border-slate-700/70 hover:bg-slate-800/40'
                       }`}
                     >

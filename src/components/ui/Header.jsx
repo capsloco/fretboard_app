@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, CheckCircle2, Zap } from 'lucide-react';
+import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Zap } from 'lucide-react';
 import { signInWithGoogle, signOut } from '../../lib/supabase';
 import {
   getTuningsForInstrument,
@@ -13,10 +13,21 @@ export default function Header({
   onOpenAuth,
   user,
   setUser,
-  onSelectTuning
+  onSelectTuning,
+  isSessionRunning = false
 }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const menuRef = useRef(null);
+
+  // Auto-collapse header when session starts, auto-expand when session ends
+  useEffect(() => {
+    if (isSessionRunning) {
+      setIsCollapsed(true);
+    } else {
+      setIsCollapsed(false);
+    }
+  }, [isSessionRunning]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -45,6 +56,34 @@ export default function Header({
     currentInstrument?.stringCount
   );
   const activeTuningId = currentInstrument?.tuningId || (matchingPreset ? matchingPreset.id : 'custom');
+
+  // Compact Collapsed Header View for Maximum Practice Viewport Usage
+  if (isCollapsed) {
+    return (
+      <header className="w-full bg-slate-950/90 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-xl px-3 py-1.5 transition-all">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-sky-400 flex items-center justify-center shadow-sm">
+              <Guitar className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
+            </div>
+            <span className="text-xs font-black text-white tracking-tight">FretLearn</span>
+            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60 hidden sm:inline">
+              {currentInstrument?.title} ({currentInstrument?.tuning?.join(' ')})
+            </span>
+          </div>
+
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 text-[11px] font-mono font-bold transition-all shadow-sm cursor-pointer"
+            title="Expand Header Menu"
+          >
+            <span>Header Menu</span>
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="w-full bg-slate-900/80 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-xl px-4 py-3 sm:px-8">
@@ -107,6 +146,18 @@ export default function Header({
               </div>
             )}
           </div>
+
+          {/* Collapse Header Button during Active Practice Session */}
+          {isSessionRunning && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-cyan-400 border border-slate-800 text-xs font-mono font-bold transition-colors cursor-pointer"
+              title="Collapse Header"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Collapse</span>
+            </button>
+          )}
 
           {/* Settings Modal Button */}
           <button

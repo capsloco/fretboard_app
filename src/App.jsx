@@ -298,10 +298,11 @@ export default function App() {
         user={user}
         setUser={setUser}
         onSelectTuning={handleTuningSelect}
+        isSessionRunning={sessionState === 'running'}
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-between space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-6 lg:p-8 flex flex-col justify-between space-y-3 sm:space-y-6">
         {sessionState === 'idle' ? (
           /* IDLE / HERO LANDING SCREEN */
           <div className="my-auto flex flex-col items-center text-center space-y-8 py-12 px-4 max-w-3xl mx-auto">
@@ -385,17 +386,17 @@ export default function App() {
           </div>
         ) : (
           /* ACTIVE PRACTICE SESSION SCREEN */
-          <div className="flex-1 flex flex-col justify-between space-y-6 py-2">
+          <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-4 py-1">
             {/* Top Bar Controls in Active Session */}
-            <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800/80 rounded-2xl px-4 py-3 backdrop-blur-md">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800/80 rounded-2xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-md">
+              <div className="flex items-center gap-2">
                 <VoiceController onCommand={handleVoiceCommand} />
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={finishSession}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold uppercase tracking-wider transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   End Round
                 </button>
@@ -415,20 +416,20 @@ export default function App() {
 
             {/* High-Visibility Action Buttons for Pass / Fail Mode (Green / Red) */}
             {config.sessionMode === 'tracked' && (
-              <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-4 my-2">
+              <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-1 sm:my-2">
                 <button
                   onClick={handleMiss}
-                  className="py-5 px-6 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wider bg-gradient-to-tr from-rose-950 via-rose-900 to-rose-950 hover:from-rose-900 hover:to-rose-800 text-rose-200 border-2 border-rose-600/70 shadow-[0_0_25px_rgba(225,29,72,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3"
+                  className="py-3 sm:py-5 px-3 sm:px-6 rounded-2xl font-black text-sm sm:text-xl uppercase tracking-wider bg-gradient-to-tr from-rose-950 via-rose-900 to-rose-950 hover:from-rose-900 hover:to-rose-800 text-rose-200 border-2 border-rose-600/70 shadow-[0_0_25px_rgba(225,29,72,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 cursor-pointer"
                 >
-                  <XCircle className="w-7 h-7 text-rose-400 stroke-[2.5]" />
+                  <XCircle className="w-5 h-5 sm:w-7 sm:h-7 text-rose-400 stroke-[2.5]" />
                   <span>MISSED ("Missed")</span>
                 </button>
 
                 <button
                   onClick={handlePass}
-                  className="py-5 px-6 rounded-2xl font-black text-lg sm:text-xl uppercase tracking-wider bg-gradient-to-tr from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-800 text-emerald-200 border-2 border-emerald-500/70 shadow-[0_0_25px_rgba(16,185,129,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3"
+                  className="py-3 sm:py-5 px-3 sm:px-6 rounded-2xl font-black text-sm sm:text-xl uppercase tracking-wider bg-gradient-to-tr from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-800 text-emerald-200 border-2 border-emerald-500/70 shadow-[0_0_25px_rgba(16,185,129,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-7 h-7 text-emerald-400 stroke-[2.5]" />
+                  <CheckCircle2 className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-400 stroke-[2.5]" />
                   <span>GOT IT ("Got it")</span>
                 </button>
               </div>

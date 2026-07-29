@@ -121,58 +121,58 @@ export default function VoiceController({ onCommand }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
         {/* Voice Command Button (Speech API) */}
         {speechSupported ? (
           <button
             onClick={() => handleModeSelect('speech')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-md ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-200 shadow-md ${
               activeMode === 'speech'
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
             }`}
           >
-            <Mic className={`w-4 h-4 ${activeMode === 'speech' ? 'text-emerald-400' : 'text-slate-400'}`} />
-            <span>{activeMode === 'speech' ? 'Voice Control Active' : 'Enable Voice'}</span>
+            <Mic className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeMode === 'speech' ? 'text-emerald-400' : 'text-slate-400'}`} />
+            <span>{activeMode === 'speech' ? 'Voice Active' : 'Enable Voice'}</span>
           </button>
         ) : null}
 
         {/* Universal Pluck / Snap Audio Trigger (Works 100% in Firefox) */}
         <button
           onClick={() => handleModeSelect('sound')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-md ${
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-200 shadow-md ${
             activeMode === 'sound'
               ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
               : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
           }`}
           title="Detects guitar string plucks, snaps, or loud notes hands-free in ANY browser"
         >
-          <Zap className={`w-4 h-4 ${activeMode === 'sound' ? 'text-cyan-400' : 'text-slate-400'}`} />
-          <span>{activeMode === 'sound' ? 'Pluck/Snap Trigger Active' : 'Pluck Trigger (Firefox)'}</span>
+          <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeMode === 'sound' ? 'text-cyan-400' : 'text-slate-400'}`} />
+          <span>{activeMode === 'sound' ? 'Pluck Active' : 'Pluck Trigger'}</span>
         </button>
 
         {/* Cheat Sheet Toggle */}
         <button
           onClick={() => setShowHelp(!showHelp)}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition-colors"
+          className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition-colors"
           title="Hands-Free Controls Guide"
         >
-          <HelpCircle className="w-4 h-4" />
+          <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
 
       {/* Firefox Web Speech API info banner */}
       {!speechSupported && (
-        <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 text-xs font-mono">
-          <AlertCircle className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 text-[10px] sm:text-xs font-mono">
+          <AlertCircle className="w-3 h-3 text-cyan-400 shrink-0" />
           <span>Firefox detected: Use <strong>Pluck Trigger</strong> or <strong>Spacebar</strong> for hands-free practice!</span>
         </div>
       )}
 
       {/* Last Heard Feedback Badge */}
       {lastHeard && (
-        <div className="text-xs font-mono text-cyan-300 bg-cyan-950/90 px-3 py-1 rounded-md border border-cyan-800/80 animate-bounce shadow-md">
+        <div className="text-[10px] sm:text-xs font-mono text-cyan-300 bg-cyan-950/90 px-2.5 py-0.5 rounded-md border border-cyan-800/80 animate-bounce shadow-md">
           Triggered: <span className="font-bold text-white">"{lastHeard}"</span>
         </div>
       )}

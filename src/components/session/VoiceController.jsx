@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Mic, MicOff, HelpCircle, Volume2, AlertCircle, Zap, Keyboard } from 'lucide-react';
 import { VoiceControllerHandler, isSpeechRecognitionSupported } from '../../lib/voice';
 import { SoundTrigger } from '../../lib/soundTrigger';
@@ -177,9 +178,15 @@ export default function VoiceController({ onCommand }) {
       )}
 
       {/* Controls Cheat Sheet Modal */}
-      {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      {showHelp && createPortal(
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+          onClick={() => setShowHelp(false)}
+        >
+          <div 
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Volume2 className="w-5 h-5 text-cyan-400" />
@@ -230,7 +237,8 @@ export default function VoiceController({ onCommand }) {
               Close Guide
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

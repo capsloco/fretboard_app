@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, LogIn, Mail, Lock, Sparkles, CheckCircle2, AlertCircle, KeyRound, ArrowLeft } from 'lucide-react';
 import { signInWithGoogle, supabase, isSupabaseConfigured } from '../../lib/supabase';
 
-export default function AuthModal({ isOpen, onClose, user, setUser, initialMode = 'normal' }) {
+export default function AuthModal({ isOpen, onClose, user, setUser, initialMode = 'normal', onOpenLegal }) {
   const [activeTab, setActiveTab] = useState('google'); // 'google' | 'magic' | 'password'
   const [mode, setMode] = useState(initialMode); // 'normal' | 'forgot' | 'update_password'
   const [email, setEmail] = useState('');
@@ -403,6 +403,25 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
             )}
           </div>
         )}
+
+        {/* Legal Footer Links */}
+        <div className="pt-3 border-t border-slate-800/80 text-center text-[11px] font-mono text-slate-500 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => onOpenLegal && onOpenLegal('privacy')}
+            className="hover:text-cyan-400 transition-colors"
+          >
+            Privacy Policy
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={() => onOpenLegal && onOpenLegal('terms')}
+            className="hover:text-cyan-400 transition-colors"
+          >
+            Terms of Service
+          </button>
+        </div>
       </div>
     </div>
   );

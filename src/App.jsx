@@ -6,6 +6,7 @@ import VoiceController from './components/session/VoiceController';
 import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import AuthModal from './components/ui/AuthModal';
+import LegalModal from './components/ui/LegalModal';
 import { generatePrompt, INSTRUMENT_PRESETS, TUNING_PRESETS } from './lib/fretLogic';
 import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
@@ -20,6 +21,8 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('normal');
+  const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState('privacy');
 
   // Session Parameters State
   const [config, setConfig] = useState({
@@ -448,8 +451,31 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-slate-800/60 py-4 px-6 text-center text-xs font-mono text-slate-400 bg-slate-950">
-        © {new Date().getFullYear()} FretLearn
+      <footer className="w-full border-t border-slate-800/60 py-4 px-6 text-xs font-mono text-slate-400 bg-slate-950">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>© {new Date().getFullYear()} FretLearn</div>
+          <div className="flex items-center gap-4 text-[11px]">
+            <button
+              onClick={() => {
+                setLegalTab('privacy');
+                setIsLegalOpen(true);
+              }}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Privacy Policy
+            </button>
+            <span className="text-slate-700">•</span>
+            <button
+              onClick={() => {
+                setLegalTab('terms');
+                setIsLegalOpen(true);
+              }}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Terms of Service
+            </button>
+          </div>
+        </div>
       </footer>
 
       {/* Settings Modal */}
@@ -477,6 +503,17 @@ export default function App() {
         user={user}
         setUser={setUser}
         initialMode={authModalMode}
+        onOpenLegal={(tab) => {
+          setLegalTab(tab || 'privacy');
+          setIsLegalOpen(true);
+        }}
+      />
+
+      {/* Legal & Privacy Modal */}
+      <LegalModal
+        isOpen={isLegalOpen}
+        onClose={() => setIsLegalOpen(false)}
+        initialTab={legalTab}
       />
     </div>
   );

@@ -13,6 +13,10 @@ export default function Fretboard({
   targetNote = null,
   onCellClick = null
 }) {
+  if (!instrument || !instrument.tuning || !Array.isArray(instrument.tuning)) {
+    return null;
+  }
+
   const displayMode = noteDisplay || (useFlats ? 'flats' : 'sharps');
   const fretCount = Math.min(instrument.fretCount || 24, maxFret);
   const startFret = Math.max(0, minFret);
@@ -26,14 +30,14 @@ export default function Fretboard({
   // Reverse tuning so String 1 (highest pitch, e.g., High E) is displayed at TOP
   const displayStrings = [...instrument.tuning].map((openNote, originalIndex) => ({
     originalIndex, // 0 is lowest pitch string in instrument.tuning array
-    displayNumber: instrument.stringCount - originalIndex,
+    displayNumber: (instrument.stringCount || instrument.tuning.length) - originalIndex,
     openNote
   })).reverse();
 
   // Helper to check if a specific string & fret position is highlighted
   const isPositionHighlighted = (origIndex, fret) => {
-    return highlightPositions.some(
-      pos => pos.stringIndex === origIndex && pos.fret === fret
+    return (highlightPositions || []).some(
+      pos => pos && pos.stringIndex === origIndex && pos.fret === fret
     );
   };
 

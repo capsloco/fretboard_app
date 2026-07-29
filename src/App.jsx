@@ -169,8 +169,26 @@ export default function App() {
       bestStreak: 0
     });
     setSessionStartTime(Date.now());
+    setIsRevealed(false);
+    
+    // Generate initial prompt synchronously
+    const firstPrompt = generatePrompt({
+      promptType: config.promptType,
+      includeAccidentals: config.includeAccidentals,
+      minFret: config.minFret,
+      maxFret: config.maxFret,
+      instrument: currentInstrument,
+      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')
+    });
+    setCurrentPrompt(firstPrompt);
+
+    if (config.sessionMode === 'flashcard') {
+      setTimeLeft(config.flashcardSecondsPerNote);
+    } else {
+      setTimeLeft(null);
+    }
+
     setSessionState('running');
-    nextPrompt();
   };
 
   // Generate next prompt

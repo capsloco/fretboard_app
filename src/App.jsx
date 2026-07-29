@@ -6,7 +6,7 @@ import VoiceController from './components/session/VoiceController';
 import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import AuthModal from './components/ui/AuthModal';
-import { generatePrompt, INSTRUMENT_PRESETS } from './lib/fretLogic';
+import { generatePrompt, INSTRUMENT_PRESETS, TUNING_PRESETS } from './lib/fretLogic';
 import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
 
@@ -26,7 +26,7 @@ export default function App() {
     sessionMode: 'tracked', // 'tracked' | 'flashcard'
     promptType: 'global', // 'global' | 'string_specific'
     includeAccidentals: false,
-    useFlats: false,
+    noteDisplay: 'sharps', // 'sharps' | 'both' | 'flats'
     minFret: 0,
     maxFret: 12,
     flashcardSecondsPerNote: 4,
@@ -71,7 +71,15 @@ export default function App() {
         if (savedSettings.instrumentId) {
           const allInsts = [...INSTRUMENT_PRESETS, ...customInsts];
           const matched = allInsts.find(i => i.id === savedSettings.instrumentId);
-          if (matched) setCurrentInstrument(matched);
+          if (matched) {
+            if (savedSettings.instrument?.tuning) {
+              setCurrentInstrument({ ...matched, ...savedSettings.instrument });
+            } else {
+              setCurrentInstrument(matched);
+            }
+          }
+        } else if (savedSettings.instrument) {
+          setCurrentInstrument(savedSettings.instrument);
         }
       }
     }
@@ -123,6 +131,31 @@ export default function App() {
     saveSettingsToStorage(config, inst);
   };
 
+  const handleTuningSelect = (tuningId) => {
+    if (!tuningId) return;
+    if (tuningId === 'custom') {
+      const updated = {
+        ...currentInstrument,
+        tuningId: 'custom'
+      };
+      setCurrentInstrument(updated);
+      saveSettingsToStorage(config, updated);
+      return;
+    }
+
+    const preset = TUNING_PRESETS.find(t => t.id === tuningId);
+    if (preset) {
+      const updated = {
+        ...currentInstrument,
+        tuningId: preset.id,
+        tuningName: preset.name,
+        tuning: [...preset.tuning]
+      };
+      setCurrentInstrument(updated);
+      saveSettingsToStorage(config, updated);
+    }
+  };
+
   // Start new practice session
   const startNewSession = () => {
     setStats({
@@ -146,7 +179,7 @@ export default function App() {
       minFret: config.minFret,
       maxFret: config.maxFret,
       instrument: currentInstrument,
-      useFlats: config.useFlats,
+      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps'),
       previousNote: currentPrompt?.note
     });
 
@@ -261,6 +294,7 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         user={user}
         setUser={setUser}
+        onSelectTuning={handleTuningSelect}
       />
 
       {/* Main Container */}
@@ -287,11 +321,16 @@ export default function App() {
             {/* Quick Session Launch Card */}
             <div className="w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <div className="text-xs font-mono text-slate-500 uppercase">Selected Instrument</div>
-                  <div className="font-bold text-cyan-300 text-sm mt-1">{currentInstrument.title}</div>
-                  <div className="text-xs font-mono text-slate-400 mt-1">
-                    {currentInstrument.stringCount} Strings ({currentInstrument.fretCount} Frets)
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <div className="text-xs font-mono text-slate-500 uppercase">Selected Instrument & Tuning</div>
+                    <div className="font-bold text-cyan-300 text-sm mt-1">{currentInstrument.title}</div>
+                    <div className="text-xs font-mono text-slate-400 mt-0.5">
+                      {currentInstrument.stringCount} Strings ({currentInstrument.fretCount} Frets)
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs font-mono text-cyan-400 font-semibold bg-cyan-950/50 px-2.5 py-1 rounded-lg border border-cyan-800/40 inline-block self-start">
+                    ⚡ {currentInstrument.tuning?.join(' - ')}
                   </div>
                 </div>
 
@@ -400,7 +439,7 @@ export default function App() {
                 revealed={isRevealed}
                 minFret={config.minFret}
                 maxFret={config.maxFret}
-                useFlats={config.useFlats}
+                noteDisplay={config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')}
                 targetNote={currentPrompt?.note}
               />
             </div>

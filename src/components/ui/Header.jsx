@@ -1,8 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, CheckCircle2, Zap } from 'lucide-react';
 import { signInWithGoogle, signOut } from '../../lib/supabase';
+import {
+  getTuningsForInstrument,
+  groupTuningsByCategory,
+  findMatchingTuningPreset
+} from '../../lib/fretLogic';
 
-export default function Header({ currentInstrument, onOpenSettings, onOpenAuth, user, setUser }) {
+export default function Header({
+  currentInstrument,
+  onOpenSettings,
+  onOpenAuth,
+  user,
+  setUser,
+  onSelectTuning
+}) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -22,6 +34,17 @@ export default function Header({ currentInstrument, onOpenSettings, onOpenAuth, 
     await signOut();
     setUser(null);
   };
+
+  const availableTunings = getTuningsForInstrument(
+    currentInstrument?.stringCount || 6,
+    currentInstrument?.type
+  );
+  const groupedTunings = groupTuningsByCategory(availableTunings);
+  const matchingPreset = findMatchingTuningPreset(
+    currentInstrument?.tuning,
+    currentInstrument?.stringCount
+  );
+  const activeTuningId = currentInstrument?.tuningId || (matchingPreset ? matchingPreset.id : 'custom');
 
   return (
     <header className="w-full bg-slate-900/80 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-xl px-4 py-3 sm:px-8">
@@ -45,14 +68,45 @@ export default function Header({ currentInstrument, onOpenSettings, onOpenAuth, 
 
         {/* Center / Right Control Items */}
         <div className="flex items-center gap-3">
-          {/* Active Instrument Pill */}
-          <button
-            onClick={onOpenSettings}
-            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/60 text-xs font-mono text-slate-300 transition-colors"
-          >
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="font-bold text-white">{currentInstrument?.title}</span>
-          </button>
+          {/* Active Instrument & On-The-Fly Tuning Selector */}
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={onOpenSettings}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/60 text-xs font-mono text-slate-300 transition-colors"
+            >
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="font-bold text-white">{currentInstrument?.title}</span>
+            </button>
+
+            {/* Quick Tuning Selector */}
+            {availableTunings.length > 0 && (
+              <div className="flex items-center bg-slate-950 border border-slate-800 hover:border-cyan-500/60 rounded-xl px-2 py-1">
+                <Zap className="w-3.5 h-3.5 text-cyan-400 mr-1.5" />
+                <select
+                  value={activeTuningId}
+                  onChange={(e) => {
+                    if (onSelectTuning) {
+                      onSelectTuning(e.target.value);
+                    }
+                  }}
+                  className="bg-transparent text-xs font-mono font-bold text-cyan-300 focus:outline-none cursor-pointer pr-1"
+                >
+                  {Object.entries(groupedTunings).map(([category, tunings]) => (
+                    <optgroup key={category} label={category} className="bg-slate-900 text-slate-300 font-bold">
+                      {tunings.map(t => (
+                        <option key={t.id} value={t.id} className="bg-slate-900 text-slate-200">
+                          {t.name} ({t.tuning.join(' ')})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value="custom" className="bg-slate-900 text-cyan-400 font-bold">
+                    Custom Tuning ({currentInstrument?.tuning?.join(' ')})
+                  </option>
+                </select>
+              </div>
+            )}
+          </div>
 
           {/* Settings Modal Button */}
           <button

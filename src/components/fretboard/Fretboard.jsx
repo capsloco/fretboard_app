@@ -8,10 +8,12 @@ export default function Fretboard({
   revealed = false,
   minFret = 0,
   maxFret = 12,
-  useFlats = false,
+  noteDisplay = 'sharps',
+  useFlats,
   targetNote = null,
   onCellClick = null
 }) {
+  const displayMode = noteDisplay || (useFlats ? 'flats' : 'sharps');
   const fretCount = Math.min(instrument.fretCount || 24, maxFret);
   const startFret = Math.max(0, minFret);
   
@@ -76,7 +78,7 @@ export default function Fretboard({
               {/* Fret Cells for this string */}
               <div className="flex-1 grid h-full z-10" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(40px, 1fr))` }}>
                 {fretsToDisplay.map(fret => {
-                  const currentNote = getNoteAtFret(str.openNote, fret, useFlats);
+                  const currentNote = getNoteAtFret(str.openNote, fret, displayMode);
                   const isHighlighted = isPositionHighlighted(str.originalIndex, fret);
                   const isTargetNoteMatch = targetNote && getNoteIndex(currentNote) === getNoteIndex(targetNote);
                   

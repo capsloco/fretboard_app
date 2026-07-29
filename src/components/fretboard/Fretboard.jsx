@@ -1,5 +1,5 @@
 import React from 'react';
-import FretMarker from './FretMarker';
+import FretMarker, { getFretMarkerType } from './FretMarker';
 import { getNoteAtFret, getNoteIndex } from '../../lib/fretLogic';
 
 export default function Fretboard({

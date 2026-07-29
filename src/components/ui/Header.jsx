@@ -57,31 +57,18 @@ export default function Header({
   );
   const activeTuningId = currentInstrument?.tuningId || (matchingPreset ? matchingPreset.id : 'custom');
 
-  // Compact Collapsed Header View for Maximum Practice Viewport Usage
-  if (isCollapsed) {
+  // Dead-centered, ultra-minimal arrow handle during active practice session
+  if (isSessionRunning && isCollapsed) {
     return (
-      <header className="w-full bg-slate-950/90 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-xl px-3 py-1.5 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-sky-400 flex items-center justify-center shadow-sm">
-              <Guitar className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
-            </div>
-            <span className="text-xs font-black text-white tracking-tight">FretLearn</span>
-            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60 hidden sm:inline">
-              {currentInstrument?.title} ({currentInstrument?.tuning?.join(' ')})
-            </span>
-          </div>
-
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 text-[11px] font-mono font-bold transition-all shadow-sm cursor-pointer"
-            title="Expand Header Menu"
-          >
-            <span>Header Menu</span>
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </header>
+      <div className="w-full sticky top-0 z-40 flex justify-center pointer-events-none">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="pointer-events-auto px-5 py-1 rounded-b-2xl bg-slate-900/90 hover:bg-slate-800 border-x border-b border-slate-700/80 text-cyan-400 hover:text-cyan-300 shadow-xl backdrop-blur-md transition-all cursor-pointer flex items-center justify-center gap-1.5 group"
+          title="Expand Header Menu"
+        >
+          <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+        </button>
+      </div>
     );
   }
 

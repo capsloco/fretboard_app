@@ -70,7 +70,7 @@ export default function Fretboard({
                     : 'text-slate-400'
                 }`}
               >
-                {fret === 0 ? 'NUT' : `F${fret}`}
+                {fret === 0 ? 'NUT' : fret}
               </div>
             ))}
           </div>

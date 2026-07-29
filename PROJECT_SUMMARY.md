@@ -2,6 +2,7 @@
 
 > **Live Production URL**: [https://fretlearn.app](https://fretlearn.app) (also [https://www.fretlearn.app](https://www.fretlearn.app))  
 > **GitHub Repository**: [https://github.com/capsloco/fretboard_app](https://github.com/capsloco/fretboard_app)  
+> **Active Feature Branch**: `v1.1`  
 > **Vercel Project**: `mr-cheese/fretboard_learn`  
 > **GTM Tag ID**: `GTM-5THRLVG4`  
 
@@ -28,22 +29,24 @@
 
 ## ⚙️ Core Mechanics & Architecture
 
-### 1. 🎯 Practice Modes
+### 1. 🎯 Practice Modes & Viewport Optimization
 * **Pass / Fail Mode (Tracked)**: Prompts ➔ Countdown ➔ Answer Reveal. Logs results via Voice (`"Got it"`, `"Missed"`), Audio Plucks, Hotkeys (`Spacebar`/`Backspace`), or Green/Red On-Screen Buttons. Calculates accuracy %, practice duration, and streak 🔥.
-* **Timed Flashcard Mode**: Continuous hands-free loop. Custom interval timer (e.g. *4 seconds per note for 5 minutes*) displaying estimated note count.
+* **Timed Flashcard Mode**: Continuous hands-free loop with custom note interval timers.
+* **Dead-Centered Arrow Header Toggle**: In active session mode, the top header auto-hides into a single dead-centered `▼` arrow handle at the top edge of the viewport.
+* **Single Viewport Fit**: All session controls, prompt cards, and fretboard elements scale to fit inside mobile viewports without vertical scrolling.
 
-### 2. 🎸 Custom Instrument Engine (4 to 8 Strings)
-* **Presets**: 6-String Guitar (Standard E), 7-String Guitar (Standard B & Drop A), 4-String Bass (Standard E), 5-String Bass (Standard B).
-* **Configurator**: Custom title, string count (4–8), fret count (12–24), and individual tuning pickers per string.
+### 2. 🎸 Realistic Fretboard & Gauge Engine
+* **Solid Bone-White Guitar Nut**: Fret 0 (`isNut`) renders as a solid white bone nut block across all string rows with a `NUT` header badge.
+* **Wide-Spaced 12th & 24th Fret Inlays**: Double dots are positioned across upper and lower string rows (e.g. String 2 & String 5).
+* **Accurate String Gauges**: String 1 (highest pitch, e.g. High E) renders as thin wire (~1.0px) and the lowest string renders as thick wire (~5.0px).
+* **Dynamic 24-Fret Width**: Dynamically calculates neck width (`headerWidth + frets * 40px`) so string wires and wood background span all 24 frets continuously.
 
-### 3. 🔍 Fretboard & Note Filtering
-* **Prompt Scopes**: *Global Note* ("Find all C# notes") vs *String-Specific* ("Find C on the A string").
-* **Accidentals Toggle**: *Naturals Only* (A–G) vs *Include Sharps (♯) & Flats (♭)*.
-* **Fret Range Boundaries**: Open position (0–5), Mid neck (5–12), Upper frets (12–24), or custom dual sliders.
+### 3. 🎼 Categorized Tuning Library & Quick-Selector
+* **Presets**: Standard, Transposed (Half Step Down, Full Step Down), Drop (Drop D, Drop C, Drop A), Open & Modal (DADGAD, Open G, Open D) tunings for 6/7-String Guitars and 4/5-String Basses.
+* **Header Tuning Selector**: Change tuning presets on the fly directly from the header bar.
 
-### 4. 💾 State Persistence
-* **Guest Users**: Settings, custom tunings, and fret boundaries auto-save to `localStorage` (`fretlearn_user_settings`, `fretlearn_custom_instruments`, `fretlearn_session_history`).
-* **Logged-in Users**: Preferences sync to Supabase `user_metadata`, custom setups to `custom_instruments` DB table, and stats to `practice_sessions` DB table.
+### 4. 📜 Legal & Compliance Modals
+* **LegalModal.jsx**: Tabbed Privacy Policy and Terms of Service covering Google OAuth verification requirements, Supabase storage, and analytics.
 
 ---
 
@@ -54,7 +57,7 @@
 ├── index.html                           # GTM script + noscript tags & Google Fonts (Outfit, JetBrains Mono)
 ├── guitar_app.md                        # Original product specifications document
 ├── guitar_app_structure.txt             # Proposed directory structure
-├── PROJECT_SUMMARY.md                   # This AGY CLI startup reference guide
+├── PROJECT_SUMMARY.md                   # AGY CLI startup reference guide
 ├── README.md                            # Public GitHub repository documentation
 ├── package.json                         # Vite + React + Tailwind v4 + Supabase dependencies
 ├── vite.config.js                       # Vite plugin configuration for Tailwind CSS
@@ -75,7 +78,8 @@
     │   └── ui/
     │       ├── AuthModal.jsx            # Google OAuth, Magic Link & Email authentication modal
     │       ├── FretRangeSlider.jsx      # Fret range boundary sliders & position presets
-    │       ├── Header.jsx               # Header bar with logo, active instrument pill, Supabase auth
+    │       ├── Header.jsx               # Header bar with dead-center arrow toggle during practice
+    │       ├── LegalModal.jsx           # Privacy Policy & Terms of Service modal
     │       └── SessionSettingsModal.jsx # Session & mechanics settings modal
     └── lib/
         ├── fretLogic.js                 # Pure math functions for note calculations & prompt generation
@@ -86,8 +90,9 @@
 
 ---
 
-## 🔧 Important Git & Vercel Configuration Notes
+## 🔧 Git & Branching Strategy
 
-* **Git Author**: Configured to `Chris Tamayo <chris.tamayo@outlook.com>` (matching GitHub account so Vercel automatic builds succeed).
+* **Git Author**: Configured to `Chris Tamayo <chris.tamayo@outlook.com>`
+* **Production Branch**: `main` (serves live production [fretlearn.app](https://fretlearn.app))
+* **Active Feature Branch**: `v1.1` (contains collapsible header, white nut, spaced double dots, dynamic neck width, string gauge fix, legal modal)
 * **Remote Origin**: `https://github.com/capsloco/fretboard_app.git`
-* **Vercel Project**: `mr-cheese/fretboard_learn` linked to custom domain `fretlearn.app` & `www.fretlearn.app`.

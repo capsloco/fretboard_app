@@ -9,23 +9,10 @@ export function getFretMarkerType(fret) {
   return null;
 }
 
-export default function FretMarker({ fret }) {
-  const markerType = getFretMarkerType(fret);
-
-  if (!markerType) return null;
-
-  if (markerType === 'double') {
-    return (
-      <div className="absolute inset-0 flex flex-col items-center justify-around py-3 pointer-events-none opacity-40">
-        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-tr from-cyan-400 to-sky-200 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-tr from-cyan-400 to-sky-200 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-      </div>
-    );
-  }
-
+export default function FretMarker() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
-      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-tr from-cyan-400 to-sky-200 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50 z-0">
+      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-cyan-100 shadow-[0_0_10px_rgba(34,211,238,0.9)] ring-1 ring-cyan-500/40" />
     </div>
   );
 }

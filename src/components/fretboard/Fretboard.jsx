@@ -37,6 +37,12 @@ export default function Fretboard({
     );
   };
 
+  // Row indices for inlay dot positioning
+  const totalStrings = displayStrings.length;
+  const singleDotRow = Math.floor((totalStrings - 1) * 0.5);
+  const upperDotRow = Math.max(0, Math.floor((totalStrings - 1) * 0.25));
+  const lowerDotRow = Math.min(totalStrings - 1, Math.ceil((totalStrings - 1) * 0.75));
+
   return (
     <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent">
       {/* Top Fret Header Labels */}
@@ -50,7 +56,7 @@ export default function Fretboard({
               key={`head-${fret}`}
               className={`text-[10px] sm:text-xs font-mono font-bold py-1 ${
                 fret === 0
-                  ? 'text-slate-950 bg-slate-100 rounded-t shadow-sm border-r-2 border-slate-300 font-extrabold'
+                  ? 'text-slate-950 bg-slate-100 rounded-t border-b-2 border-slate-300 font-extrabold shadow-sm'
                   : 'text-slate-400'
               }`}
             >
@@ -70,7 +76,10 @@ export default function Fretboard({
             <div key={`string-${str.originalIndex}`} className="relative flex items-center h-10 sm:h-14 group">
               {/* String Wire Visual */}
               <div 
-                className="absolute left-16 sm:left-24 right-0 bg-gradient-to-r from-slate-400 via-slate-300 to-slate-400 z-0 opacity-80 group-hover:opacity-100 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)]" 
+                className={`absolute left-16 sm:left-24 right-0 z-0 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${
+                  /* Darker string wire accent over solid white nut area */
+                  'bg-gradient-to-r from-slate-600 via-slate-300 to-slate-400 opacity-80 group-hover:opacity-100'
+                }`}
                 style={{ height: `${thicknessPx}px` }} 
               />
 
@@ -90,6 +99,7 @@ export default function Fretboard({
                   const isTargetNoteMatch = targetNote && getNoteIndex(currentNote) === getNoteIndex(targetNote);
                   
                   const isNut = fret === 0;
+                  const markerType = getFretMarkerType(fret);
 
                   return (
                     <div
@@ -97,13 +107,20 @@ export default function Fretboard({
                       onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
                       className={`relative flex items-center justify-center cursor-pointer transition-all duration-200 ${
                         isNut 
-                          ? 'border-r-[6px] border-slate-100 bg-slate-950 shadow-[0_0_10px_rgba(255,255,255,0.7)]' 
+                          ? 'bg-gradient-to-r from-slate-200 via-white to-slate-200 border-r-4 border-slate-400 shadow-[inset_-2px_0_4px_rgba(0,0,0,0.2)]' 
                           : 'border-r border-slate-700/70 hover:bg-slate-800/40'
                       }`}
                     >
-                      {/* Inlay Dots on Middle String row */}
-                      {displayIdx === Math.floor(displayStrings.length / 2) && !isNut && (
-                        <FretMarker fret={fret} />
+                      {/* Inlay Dots */}
+                      {!isNut && (
+                        <>
+                          {markerType === 'single' && displayIdx === singleDotRow && (
+                            <FretMarker />
+                          )}
+                          {markerType === 'double' && (displayIdx === upperDotRow || displayIdx === lowerDotRow) && (
+                            <FretMarker />
+                          )}
+                        </>
                       )}
 
                       {/* Note Badge / Marker */}
@@ -116,7 +133,9 @@ export default function Fretboard({
                           {currentNote}
                         </div>
                       ) : (
-                        <span className="text-[10px] sm:text-xs font-mono font-medium text-slate-600 opacity-0 hover:opacity-100 transition-opacity">
+                        <span className={`text-[10px] sm:text-xs font-mono font-bold opacity-0 hover:opacity-100 transition-opacity ${
+                          isNut ? 'text-slate-900' : 'text-slate-600'
+                        }`}>
                           {currentNote}
                         </span>
                       )}

@@ -5,8 +5,10 @@ import Fretboard from './components/fretboard/Fretboard';
 import VoiceController from './components/session/VoiceController';
 import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
-import { generatePrompt, INSTRUMENT_PRESETS } from './lib/fretLogic';
-import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings } from './lib/supabase';
+import AuthModal from './components/ui/AuthModal';
+import LegalModal from './components/ui/LegalModal';
+import { generatePrompt, INSTRUMENT_PRESETS, TUNING_PRESETS } from './lib/fretLogic';
+import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -15,15 +17,19 @@ export default function App() {
   const [userCustomInstruments, setUserCustomInstruments] = useState([]);
   const [user, setUser] = useState(null);
 
-  // Settings Modal State
+  // Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('normal');
+  const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState('privacy');
 
   // Session Parameters State
   const [config, setConfig] = useState({
     sessionMode: 'tracked', // 'tracked' | 'flashcard'
     promptType: 'global', // 'global' | 'string_specific'
     includeAccidentals: false,
-    useFlats: false,
+    noteDisplay: 'sharps', // 'sharps' | 'both' | 'flats'
     minFret: 0,
     maxFret: 12,
     flashcardSecondsPerNote: 4,
@@ -68,11 +74,36 @@ export default function App() {
         if (savedSettings.instrumentId) {
           const allInsts = [...INSTRUMENT_PRESETS, ...customInsts];
           const matched = allInsts.find(i => i.id === savedSettings.instrumentId);
-          if (matched) setCurrentInstrument(matched);
+          if (matched) {
+            if (savedSettings.instrument?.tuning) {
+              setCurrentInstrument({ ...matched, ...savedSettings.instrument });
+            } else {
+              setCurrentInstrument(matched);
+            }
+          }
+        } else if (savedSettings.instrument) {
+          setCurrentInstrument(savedSettings.instrument);
         }
       }
     }
     initData();
+
+    // Check if user landed via password reset link (URL hash or search param contains recovery type)
+    if (window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')) {
+      setAuthModalMode('update_password');
+      setIsAuthOpen(true);
+    }
+
+    const sub = subscribeToAuthChanges((u, event) => {
+      setUser(u);
+      if (event === 'PASSWORD_RECOVERY' || window.location.hash.includes('type=recovery')) {
+        setAuthModalMode('update_password');
+        setIsAuthOpen(true);
+      }
+    });
+    return () => {
+      if (sub?.unsubscribe) sub.unsubscribe();
+    };
   }, []);
 
   // Auto-persist user settings on config / instrument changes
@@ -103,6 +134,31 @@ export default function App() {
     saveSettingsToStorage(config, inst);
   };
 
+  const handleTuningSelect = (tuningId) => {
+    if (!tuningId) return;
+    if (tuningId === 'custom') {
+      const updated = {
+        ...currentInstrument,
+        tuningId: 'custom'
+      };
+      setCurrentInstrument(updated);
+      saveSettingsToStorage(config, updated);
+      return;
+    }
+
+    const preset = TUNING_PRESETS.find(t => t.id === tuningId);
+    if (preset) {
+      const updated = {
+        ...currentInstrument,
+        tuningId: preset.id,
+        tuningName: preset.name,
+        tuning: [...preset.tuning]
+      };
+      setCurrentInstrument(updated);
+      saveSettingsToStorage(config, updated);
+    }
+  };
+
   // Start new practice session
   const startNewSession = () => {
     setStats({
@@ -126,7 +182,7 @@ export default function App() {
       minFret: config.minFret,
       maxFret: config.maxFret,
       instrument: currentInstrument,
-      useFlats: config.useFlats,
+      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps'),
       previousNote: currentPrompt?.note
     });
 
@@ -234,12 +290,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
-      {/* Header Bar */}
+      {/* Header */}
       <Header
         currentInstrument={currentInstrument}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
         user={user}
         setUser={setUser}
+        onSelectTuning={handleTuningSelect}
       />
 
       {/* Main Container */}
@@ -266,11 +324,16 @@ export default function App() {
             {/* Quick Session Launch Card */}
             <div className="w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <div className="text-xs font-mono text-slate-500 uppercase">Selected Instrument</div>
-                  <div className="font-bold text-cyan-300 text-sm mt-1">{currentInstrument.title}</div>
-                  <div className="text-xs font-mono text-slate-400 mt-1">
-                    {currentInstrument.stringCount} Strings ({currentInstrument.fretCount} Frets)
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <div className="text-xs font-mono text-slate-500 uppercase">Selected Instrument & Tuning</div>
+                    <div className="font-bold text-cyan-300 text-sm mt-1">{currentInstrument.title}</div>
+                    <div className="text-xs font-mono text-slate-400 mt-0.5">
+                      {currentInstrument.stringCount} Strings ({currentInstrument.fretCount} Frets)
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs font-mono text-cyan-400 font-semibold bg-cyan-950/50 px-2.5 py-1 rounded-lg border border-cyan-800/40 inline-block self-start">
+                    ⚡ {currentInstrument.tuning?.join(' - ')}
                   </div>
                 </div>
 
@@ -379,7 +442,7 @@ export default function App() {
                 revealed={isRevealed}
                 minFret={config.minFret}
                 maxFret={config.maxFret}
-                useFlats={config.useFlats}
+                noteDisplay={config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')}
                 targetNote={currentPrompt?.note}
               />
             </div>
@@ -388,8 +451,31 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-slate-800/60 py-4 px-6 text-center text-xs font-mono text-slate-400 bg-slate-950">
-        FretFlow Hands-Free Trainer • React + Vite + Web Speech API
+      <footer className="w-full border-t border-slate-800/60 py-4 px-6 text-xs font-mono text-slate-400 bg-slate-950">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>© {new Date().getFullYear()} FretLearn</div>
+          <div className="flex items-center gap-4 text-[11px]">
+            <button
+              onClick={() => {
+                setLegalTab('privacy');
+                setIsLegalOpen(true);
+              }}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Privacy Policy
+            </button>
+            <span className="text-slate-700">•</span>
+            <button
+              onClick={() => {
+                setLegalTab('terms');
+                setIsLegalOpen(true);
+              }}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Terms of Service
+            </button>
+          </div>
+        </div>
       </footer>
 
       {/* Settings Modal */}
@@ -405,6 +491,29 @@ export default function App() {
           setUserCustomInstruments(prev => [savedInst, ...prev]);
         }}
         onStartSession={startNewSession}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => {
+          setIsAuthOpen(false);
+          setAuthModalMode('normal');
+        }}
+        user={user}
+        setUser={setUser}
+        initialMode={authModalMode}
+        onOpenLegal={(tab) => {
+          setLegalTab(tab || 'privacy');
+          setIsLegalOpen(true);
+        }}
+      />
+
+      {/* Legal & Privacy Modal */}
+      <LegalModal
+        isOpen={isLegalOpen}
+        onClose={() => setIsLegalOpen(false)}
+        initialTab={legalTab}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Play, Sliders, Music, ToggleLeft, ToggleRight, Clock, Target, HelpCircle } from 'lucide-react';
 import InstrumentBuilder from '../settings/InstrumentBuilder';
 import FretRangeSlider from './FretRangeSlider';
@@ -23,9 +24,15 @@ export default function SessionSettingsModal({
     (config.flashcardDurationMins * 60) / config.flashcardSecondsPerNote
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
           <div className="flex items-center gap-2">
@@ -61,7 +68,7 @@ export default function SessionSettingsModal({
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Music className="w-4 h-4" /> Instrument Setup ({currentInstrument?.title})
+            <Music className="w-4 h-4" /> Instrument Setup
           </button>
         </div>
 
@@ -186,9 +193,9 @@ export default function SessionSettingsModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white text-xs uppercase font-mono">Accidentals</div>
+                    <div className="font-bold text-white text-xs uppercase font-mono">Include Sharps and Flats</div>
                     <div className="text-[11px] text-slate-400">
-                      {config.includeAccidentals ? 'Include Sharps & Flats' : 'Naturals Only (A-G)'}
+                      {config.includeAccidentals ? 'Sharps & Flats included' : 'Naturals Only (A-G)'}
                     </div>
                   </div>
                   <button
@@ -203,19 +210,52 @@ export default function SessionSettingsModal({
                   </button>
                 </div>
 
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-2">
                   <div>
-                    <div className="font-bold text-white text-xs uppercase font-mono">Notation</div>
+                    <div className="font-bold text-white text-xs uppercase font-mono">Note Display</div>
                     <div className="text-[11px] text-slate-400">
-                      {config.useFlats ? 'Display Flats (♭)' : 'Display Sharps (♯)'}
+                      {(config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'flats'
+                        ? 'Display Flats (♭)'
+                        : (config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'both'
+                        ? 'Display Sharps & Flats'
+                        : 'Display Sharps (♯)'}
                     </div>
                   </div>
-                  <button
-                    onClick={() => onChangeConfig('useFlats', !config.useFlats)}
-                    className="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-slate-900 border border-slate-800 text-cyan-400"
-                  >
-                    {config.useFlats ? '♭ Flats' : '♯ Sharps'}
-                  </button>
+                  <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => onChangeConfig('noteDisplay', 'sharps')}
+                      className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold font-mono transition-all text-center ${
+                        (config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'sharps'
+                          ? 'bg-cyan-500 text-slate-950 shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      # Sharps
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onChangeConfig('noteDisplay', 'both')}
+                      className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold font-mono transition-all text-center ${
+                        config.noteDisplay === 'both'
+                          ? 'bg-cyan-500 text-slate-950 shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Both
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onChangeConfig('noteDisplay', 'flats')}
+                      className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold font-mono transition-all text-center ${
+                        (config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'flats'
+                          ? 'bg-cyan-500 text-slate-950 shadow-md'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Flats ♭
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -258,6 +298,7 @@ export default function SessionSettingsModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

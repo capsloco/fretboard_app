@@ -18,23 +18,29 @@ Welcome to **FretLearn** ([fretlearn.app](https://fretlearn.app)), the ultimate 
 * **Single Viewport Fit**: Compact note prompt cards, voice controls, and action buttons designed to fit 100% inside your mobile viewport without scrolling.
 * **Massive Typography**: High-contrast 4–6 ft viewing distance note display.
 
-### 🎸 3. Realistic Interactive Fretboard
-* **Solid Bone-White Guitar Nut**: Fret 0 features a continuous solid white bone-style nut block with a dedicated `NUT` header badge.
-* **Wide-Spaced Double Inlays**: 12th and 24th fret double dots are placed across upper and lower string rows matching authentic Fender/Gibson neck layouts.
-* **Accurate String Gauges**: String 1 (highest pitch, e.g. High E) renders as thin wire (~1.0px) and the lowest string renders as thick wire (~5.0px).
-* **24-Fret Dynamic Width**: Seamless horizontal scrolling supporting 12 to 24 frets without background or string cutoff.
+### 🎸 3. Realistic Wood Grain Interactive Fretboard
+* **Real Wood Textures (Theme-Aware)**: Dynamically switches between **Light Maple Wood** (for Clean, Light & Acid themes) and **Dark Rosewood / Laurel Wood** (for Dark & Neon themes) with subtle linear wood grain striations.
+* **Narrow Ivory/Bone Nut**: Fret 0 features a dedicated narrow, realistic bone/ivory nut strip (`bg-amber-50 text-amber-950`) with an `N` header badge.
+* **Pearl & Dark Walnut Inlays**: Real-time switching between mother-of-pearl dots on Rosewood and dark walnut dots on Maple.
+* **Accurate String Gauges & Fret Wires**: String 1 (highest pitch, e.g. High E) renders as thin wire (~1.2px) and the lowest string renders as thick wire (~5.5px) with theme-reactive metallic fret wire dividers.
+* **100% Desktop Width & 24-Fret Responsive Layout**: Expands cleanly to fill full desktop screens while offering smooth horizontal scrolling for 12 to 24 frets.
 
-### 🎯 4. Game Modes & Notation Customization
+### 🎯 4. Custom daisyUI Popovers & Controls
+* **Custom Dropdown Menus**: Replaced native browser OS selects with custom daisyUI popover dropdown cards for tunings and per-string custom note selectors.
+* **Sleek Floating Chevron Handle**: Minimal, non-intrusive floating chevron handle (`▼`) that expands the top navbar during practice sessions.
+
+### 🎯 5. Game Modes & Notation Customization
 * **🎯 Pass / Fail Mode (Tracked)**: React to prompts, track round accuracy %, session duration, and build 🔥 **Streaks**!
 * **⏱️ Timed Flashcard Mode**: Continuous hands-free loop with custom note interval timers.
 * **🎵 3-Way Notation Switcher**: Toggle between **Sharps (#)**, **Both (C#/D♭)**, or **Flats (♭)**.
 * **🔍 Scope & Range Sliders**: Practice *Global Notes* or *String-Specific* prompts across custom fret ranges (e.g. Frets 5–12).
 
-### 🎼 5. Categorized Tuning Presets & Header Quick-Switch
+### 🎼 6. Categorized Tuning Presets & Instrument Builder
 * **Preset Library**: Standard, Transposed (Half Step Down, Full Step Down), Drop (Drop D, Drop C, Drop A), Open & Modal (DADGAD, Open G, Open D) tunings for 6-String & 7-String Guitars and 4-String & 5-String Basses.
-* **Header Tuning Selector**: Switch tunings on the fly directly from the top header bar.
+* **Custom Per-String Note Selector**: Build and save custom tunings note-by-note using custom daisyUI popovers.
 
-### 📜 6. Legal & Google OAuth Verification Ready
+### 📜 7. Legal, Privacy & Consent Mode v2
+* **Google Consent Mode v2 & Cookie Consent Banner**: Integrated `analytics_storage` consent default blocking before GTM load with an interactive consent banner and footer preference controls.
 * **Privacy Policy & Terms of Service**: Modal (`LegalModal.jsx`) and footer links covering Supabase Auth, practice stats, Google Tag Manager telemetry, and user data rights.
 
 ---
@@ -42,11 +48,11 @@ Welcome to **FretLearn** ([fretlearn.app](https://fretlearn.app)), the ultimate 
 ## 🛠️ Tech Stack 🧰
 
 * ⚛️ **Frontend**: React 19 + Vite 8
-* 🎨 **Styling**: Tailwind CSS v4 (`@tailwindcss/vite` with dark mode & glowing animations)
+* 🌼 **UI System**: daisyUI v5 + Tailwind CSS v4 (`@tailwindcss/vite`)
+* 🪵 **Graphics & Motion**: Pure CSS Real Wood Grain Textures + Lucide Icons
 * 🎙️ **Voice Control**: Web Speech API (`webkitSpeechRecognition`) + Web Audio API (`AnalyserNode`)
-* ⚡ **Icons**: Lucide React Icons
 * 🗄️ **Database & Auth**: Supabase (Google OAuth + Postgres DB) with `localStorage` fallback
-* 📊 **Analytics**: Google Tag Manager (`GTM-5THRLVG4`)
+* 📊 **Analytics & Compliance**: Google Tag Manager (`GTM-5THRLVG4`) + Google Consent Mode v2
 
 ---
 

@@ -1,11 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Zap } from 'lucide-react';
+import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Zap, Palette } from 'lucide-react';
 import { signInWithGoogle, signOut } from '../../lib/supabase';
 import {
   getTuningsForInstrument,
   groupTuningsByCategory,
   findMatchingTuningPreset
 } from '../../lib/fretLogic';
+
+const THEME_PRESETS = [
+  { group: '☀️ Clean & Light', themes: ['emerald', 'nord', 'corporate', 'winter', 'silk', 'autumn', 'retro', 'light'] },
+  { group: '🌙 Dark & Night', themes: ['dim', 'night', 'sunset', 'dracula', 'abyss'] },
+  { group: '⚡ Vibrant & Neon', themes: ['synthwave', 'cyberpunk', 'acid'] }
+];
 
 export default function Header({
   currentInstrument,
@@ -17,8 +23,17 @@ export default function Header({
   isSessionRunning = false
 }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fretlearn_theme') || 'emerald');
   const menuRef = useRef(null);
+  const themeRef = useRef(null);
+
+  // Apply active theme to document html element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('fretlearn_theme', currentTheme);
+  }, [currentTheme]);
 
   // Auto-collapse header when session starts, auto-expand when session ends
   useEffect(() => {
@@ -34,6 +49,9 @@ export default function Header({
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsUserMenuOpen(false);
+      }
+      if (themeRef.current && !themeRef.current.contains(event.target)) {
+        setIsThemeMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -145,6 +163,51 @@ export default function Header({
             <span className="hidden sm:inline">Collapse</span>
           </button>
         )}
+
+        {/* Theme Selector Dropdown */}
+        <div className="relative" ref={themeRef}>
+          <button
+            onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
+            className="btn btn-sm btn-outline btn-neutral flex items-center gap-1.5 font-bold"
+            title="Switch Theme Preset"
+          >
+            <Palette className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline capitalize">{currentTheme}</span>
+            <ChevronDown className={`w-3.5 h-3.5 opacity-70 transition-transform ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isThemeMenuOpen && (
+            <div className="dropdown-content menu p-3 shadow-2xl bg-base-100 rounded-box w-56 absolute right-0 mt-2 z-50 border border-base-300 max-h-96 overflow-y-auto">
+              <div className="text-xs font-bold text-base-content/60 px-2 pb-2 mb-1 border-b border-base-200 uppercase tracking-wider font-mono">
+                Theme Presets
+              </div>
+              {THEME_PRESETS.map((group) => (
+                <div key={group.group} className="mb-2">
+                  <div className="text-[11px] font-bold text-primary px-2 py-1 uppercase font-mono">
+                    {group.group}
+                  </div>
+                  <div className="grid grid-cols-1 gap-1">
+                    {group.themes.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => {
+                          setCurrentTheme(t);
+                          setIsThemeMenuOpen(false);
+                        }}
+                        className={`btn btn-xs justify-start capitalize font-bold ${
+                          currentTheme === t ? 'btn-primary' : 'btn-ghost'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-primary" />
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Settings Modal Button */}
         <button

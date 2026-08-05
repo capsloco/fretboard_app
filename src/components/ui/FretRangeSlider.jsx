@@ -10,10 +10,10 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
   ];
 
   return (
-    <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+    <div className="bg-base-200 border border-base-300 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+        <label className="text-xs font-mono text-base-content/70 uppercase tracking-wider flex items-center gap-1.5">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
           Fret Range Boundaries
         </label>
         <span className="text-xs font-mono text-cyan-300 font-bold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50">

@@ -21,10 +21,10 @@ export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-center space-y-6 animate-fade-in">
+    <div className="card bg-base-100 border border-base-300 shadow-2xl w-full max-w-xl mx-auto p-6 sm:p-8 text-center space-y-6 animate-fade-in">
       {/* Header Badge */}
-      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-xs uppercase tracking-widest">
-        <Trophy className="w-4 h-4 text-cyan-400" />
+      <div className="badge badge-primary badge-lg gap-2 font-mono text-xs uppercase tracking-widest mx-auto">
+        <Trophy className="w-4 h-4" />
         Session Complete
       </div>
 

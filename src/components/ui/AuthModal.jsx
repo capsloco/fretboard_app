@@ -123,12 +123,12 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-cyan-950/50">
+    <div className="modal modal-open bg-base-900/80 backdrop-blur-md z-[100]">
+      <div className="modal-box relative w-full max-w-md bg-base-100 border border-base-300 shadow-2xl p-6 sm:p-8">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="btn btn-sm btn-ghost btn-circle absolute top-4 right-4 font-bold"
         >
           <X className="w-5 h-5" />
         </button>

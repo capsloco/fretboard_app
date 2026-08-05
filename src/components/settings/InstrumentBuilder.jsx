@@ -97,11 +97,11 @@ export default function InstrumentBuilder({
   };
 
   return (
-    <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-xl space-y-6">
+    <div className="card bg-base-100 border border-base-300 rounded-3xl p-6 shadow-2xl space-y-6">
       {/* Top Header & Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <Music className="w-5 h-5 text-cyan-400" />
+      <div className="flex items-center justify-between border-b border-base-200 pb-4">
+        <h3 className="text-xl font-bold text-base-content flex items-center gap-2">
+          <Music className="w-5 h-5 text-primary" />
           Instrument & Tuning Manager
         </h3>
         <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">

@@ -53,11 +53,11 @@ export default function Fretboard({
   const minNeckWidthPx = headerWidthPx + (fretsToDisplay.length * fretColWidthPx);
 
   return (
-    <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent">
+    <div className="card bg-base-100 border border-base-300 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent w-full">
       <div className="w-max min-w-full flex flex-col" style={{ minWidth: `${minNeckWidthPx}px` }}>
         {/* Top Fret Header Labels */}
         <div className="flex items-center mb-1 sm:mb-2 w-full">
-          <div className="w-16 sm:w-24 text-center text-[10px] sm:text-xs font-mono tracking-wider font-semibold text-slate-500 uppercase shrink-0">
+          <div className="w-16 sm:w-24 text-center text-[10px] sm:text-xs font-mono tracking-wider font-semibold text-base-content/60 uppercase shrink-0">
             String
           </div>
           <div className="flex-1 grid gap-0 text-center" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(36px, 1fr))` }}>
@@ -66,8 +66,8 @@ export default function Fretboard({
                 key={`head-${fret}`}
                 className={`text-[10px] sm:text-xs font-mono font-bold py-1 ${
                   fret === 0
-                    ? 'text-slate-950 bg-slate-100 rounded-t border-b-2 border-slate-300 font-extrabold shadow-sm'
-                    : 'text-slate-400'
+                    ? 'bg-base-300 text-base-content rounded-t border-b-2 border-base-content/30 font-extrabold shadow-sm'
+                    : 'text-base-content/70'
                 }`}
               >
                 {fret === 0 ? 'NUT' : fret}
@@ -77,7 +77,7 @@ export default function Fretboard({
         </div>
 
         {/* Fretboard Grid Container */}
-        <div className="relative w-full border-t border-b border-slate-700/80 rounded-lg bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-1 shadow-inner">
+        <div className="relative w-full border-t border-b border-base-300 rounded-lg bg-base-200 py-1 shadow-inner">
           {displayStrings.map((str, displayIdx) => {
             // Calculate string thickness based on pitch (thinnest for High Pitch S1, thickest for Low Pitch S_N)
             const maxIndex = (instrument.stringCount || 6) - 1;
@@ -87,14 +87,14 @@ export default function Fretboard({
               <div key={`string-${str.originalIndex}`} className="relative flex items-center h-10 sm:h-14 group">
                 {/* String Wire Visual */}
                 <div 
-                  className="absolute left-16 sm:left-24 right-0 z-0 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)] bg-gradient-to-r from-slate-600 via-slate-300 to-slate-400 opacity-80 group-hover:opacity-100" 
+                  className="absolute left-16 sm:left-24 right-0 z-0 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)] bg-gradient-to-r from-base-content/40 via-base-content/70 to-base-content/40 opacity-80 group-hover:opacity-100" 
                   style={{ height: `${thicknessPx}px` }} 
                 />
 
                 {/* String Header Label */}
-                <div className="w-16 sm:w-24 z-10 flex items-center justify-between pr-2 sm:pr-4 pl-1.5 font-mono border-r border-slate-700/60 bg-slate-950/90 h-full shrink-0">
-                  <span className="text-[10px] sm:text-xs font-semibold text-slate-400">S{str.displayNumber}</span>
-                  <span className="text-xs sm:text-sm font-bold text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50">
+                <div className="w-16 sm:w-24 z-10 flex items-center justify-between pr-2 sm:pr-4 pl-1.5 font-mono border-r border-base-300 bg-base-100 h-full shrink-0">
+                  <span className="text-[10px] sm:text-xs font-semibold text-base-content/70">S{str.displayNumber}</span>
+                  <span className="badge badge-primary badge-sm font-bold">
                     {str.openNote}
                   </span>
                 </div>
@@ -113,10 +113,10 @@ export default function Fretboard({
                     <div
                       key={`cell-${str.originalIndex}-${fret}`}
                       onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
-                      className={`relative flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                      className={`relative flex items-center justify-center cursor-pointer transition-colors duration-200 ${
                         isNut 
-                          ? 'bg-gradient-to-r from-slate-200 via-white to-slate-200 border-r-4 border-slate-400 shadow-[inset_-2px_0_4px_rgba(0,0,0,0.2)]' 
-                          : 'border-r border-slate-700/70 hover:bg-slate-800/40'
+                          ? 'bg-base-300 border-r-4 border-base-content/30 shadow-inner' 
+                          : 'border-r border-base-300 hover:bg-base-300/40'
                       }`}
                     >
                       {/* Inlay Dots */}
@@ -133,16 +133,16 @@ export default function Fretboard({
 
                       {/* Note Badge / Marker */}
                       {revealed && isHighlighted ? (
-                        <div className="z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-400 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center shadow-[0_0_15px_rgba(52,211,153,0.9)] animate-bounce-subtle ring-2 ring-emerald-200">
+                        <div className="z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-success text-success-content font-black text-sm sm:text-base flex items-center justify-center shadow-lg animate-bounce-subtle ring-2 ring-success-content/40">
                           {currentNote}
                         </div>
                       ) : revealed && isTargetNoteMatch && (!highlightPositions || highlightPositions.length === 0) ? (
-                        <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-cyan-900/80 text-cyan-200 font-bold text-xs sm:text-sm flex items-center justify-center border border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                        <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-primary-content font-bold text-xs sm:text-sm flex items-center justify-center shadow-md">
                           {currentNote}
                         </div>
                       ) : (
                         <span className={`text-[10px] sm:text-xs font-mono font-bold opacity-0 hover:opacity-100 transition-opacity ${
-                          isNut ? 'text-slate-900' : 'text-slate-600'
+                          isNut ? 'text-base-content' : 'text-base-content/50'
                         }`}>
                           {currentNote}
                         </span>
@@ -158,11 +158,11 @@ export default function Fretboard({
       </div>
 
       {/* Fret Legend / Note Count Footer */}
-      <div className="flex items-center justify-between mt-3 px-2 text-xs font-mono text-slate-400">
-        <div>Frets shown: <span className="text-cyan-400 font-semibold">{startFret} to {fretCount}</span></div>
+      <div className="flex items-center justify-between mt-3 px-2 text-xs font-mono text-base-content/70">
+        <div>Frets shown: <span className="text-primary font-semibold">{startFret} to {fretCount}</span></div>
         {revealed && (
-          <div className="text-emerald-400 font-semibold flex items-center gap-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <div className="text-success font-semibold flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-full bg-success animate-ping" />
             {highlightPositions.length} Matching Position{highlightPositions.length === 1 ? '' : 's'} Highlighted
           </div>
         )}

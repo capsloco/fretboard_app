@@ -121,19 +121,15 @@ export default function VoiceController({ onCommand }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         {/* Voice Command Button (Speech API) */}
         {speechSupported ? (
           <button
             onClick={() => handleModeSelect('speech')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-200 shadow-md ${
-              activeMode === 'speech'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-            }`}
+            className={`btn btn-sm ${activeMode === 'speech' ? 'btn-success animate-pulse' : 'btn-neutral btn-outline'} font-bold uppercase gap-1.5`}
           >
-            <Mic className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeMode === 'speech' ? 'text-emerald-400' : 'text-slate-400'}`} />
+            <Mic className="w-4 h-4" />
             <span>{activeMode === 'speech' ? 'Voice Active' : 'Enable Voice'}</span>
           </button>
         ) : null}
@@ -141,101 +137,99 @@ export default function VoiceController({ onCommand }) {
         {/* Universal Pluck / Snap Audio Trigger (Works 100% in Firefox) */}
         <button
           onClick={() => handleModeSelect('sound')}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-200 shadow-md ${
-            activeMode === 'sound'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse'
-              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-          }`}
+          className={`btn btn-sm ${activeMode === 'sound' ? 'btn-primary animate-pulse' : 'btn-neutral btn-outline'} font-bold uppercase gap-1.5`}
           title="Detects guitar string plucks, snaps, or loud notes hands-free in ANY browser"
         >
-          <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeMode === 'sound' ? 'text-cyan-400' : 'text-slate-400'}`} />
+          <Zap className="w-4 h-4" />
           <span>{activeMode === 'sound' ? 'Pluck Active' : 'Pluck Trigger'}</span>
         </button>
 
         {/* Cheat Sheet Toggle */}
         <button
           onClick={() => setShowHelp(!showHelp)}
-          className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition-colors"
+          className="btn btn-sm btn-square btn-ghost text-base-content/70 hover:text-base-content"
           title="Hands-Free Controls Guide"
         >
-          <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <HelpCircle className="w-4 h-4" />
         </button>
       </div>
 
       {/* Firefox Web Speech API info banner */}
       {!speechSupported && (
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 text-[10px] sm:text-xs font-mono">
-          <AlertCircle className="w-3 h-3 text-cyan-400 shrink-0" />
+        <div className="alert alert-info py-1.5 px-3 text-xs font-mono max-w-md">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>Firefox detected: Use <strong>Pluck Trigger</strong> or <strong>Spacebar</strong> for hands-free practice!</span>
         </div>
       )}
 
       {/* Last Heard Feedback Badge */}
       {lastHeard && (
-        <div className="text-[10px] sm:text-xs font-mono text-cyan-300 bg-cyan-950/90 px-2.5 py-0.5 rounded-md border border-cyan-800/80 animate-bounce shadow-md">
-          Triggered: <span className="font-bold text-white">"{lastHeard}"</span>
+        <div className="badge badge-primary badge-outline font-mono text-xs animate-bounce shadow-md py-2">
+          Triggered: <span className="font-bold ml-1">"{lastHeard}"</span>
         </div>
       )}
 
       {/* Controls Cheat Sheet Modal */}
       {showHelp && createPortal(
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+          className="modal modal-open bg-base-900/80 backdrop-blur-sm z-[100]"
           onClick={() => setShowHelp(false)}
         >
           <div 
-            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            className="modal-box bg-base-100 border border-base-300 max-w-md shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Volume2 className="w-5 h-5 text-cyan-400" />
+            <div className="flex items-center justify-between border-b border-base-200 pb-3">
+              <h3 className="text-lg font-bold text-base-content flex items-center gap-2">
+                <Volume2 className="w-5 h-5 text-primary" />
                 Hands-Free Controls Guide
               </h3>
               <button
                 onClick={() => setShowHelp(false)}
-                className="text-slate-400 hover:text-white font-bold text-sm"
+                className="btn btn-sm btn-ghost btn-circle font-bold text-sm"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-sm">
-              <div className="p-3 bg-slate-950/60 rounded-xl border border-cyan-900/40">
-                <div className="font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
+              <div className="p-3 bg-base-200 rounded-box border border-primary/20">
+                <div className="font-bold text-primary mb-1 flex items-center gap-1.5">
                   <Zap className="w-4 h-4" /> 1. Pluck / Snap Audio Trigger (Works Everywhere)
                 </div>
-                <div className="text-xs text-slate-300">
+                <div className="text-xs text-base-content/80">
                   Pluck a string loudly, snap your fingers, or tap your guitar body! FretLearn registers any audio peak hands-free.
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-950/60 rounded-xl border border-emerald-900/40">
-                <div className="font-bold text-emerald-400 mb-1 flex items-center gap-1.5">
+              <div className="p-3 bg-base-200 rounded-box border border-success/20">
+                <div className="font-bold text-success mb-1 flex items-center gap-1.5">
                   <Mic className="w-4 h-4" /> 2. Voice Recognition (Chrome / Edge / Safari)
                 </div>
-                <div className="text-xs text-slate-300 font-mono">
-                  Say: <span className="text-white font-semibold font-sans">"Got it"</span>, <span className="text-white font-semibold font-sans">"Hit"</span>, <span className="text-white font-semibold font-sans">"Pass"</span> for correct ➔ <span className="text-white font-semibold font-sans">"Missed"</span> for wrong.
+                <div className="text-xs text-base-content/80 font-mono">
+                  Say: <span className="text-base-content font-bold font-sans">"Got it"</span>, <span className="text-base-content font-bold font-sans">"Hit"</span>, <span className="text-base-content font-bold font-sans">"Pass"</span> for correct ➔ <span className="text-base-content font-bold font-sans">"Missed"</span> for wrong.
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-950/60 rounded-xl border border-purple-900/40">
-                <div className="font-bold text-purple-400 mb-1 flex items-center gap-1.5">
+              <div className="p-3 bg-base-200 rounded-box border border-secondary/20">
+                <div className="font-bold text-secondary mb-1 flex items-center gap-1.5">
                   <Keyboard className="w-4 h-4" /> 3. Keyboard / Footswitch Hotkeys
                 </div>
-                <div className="text-xs text-slate-300 font-mono">
-                  Press <span className="text-white font-bold">Spacebar</span> or <span className="text-white font-bold">Enter</span> = Got it! <br />
-                  Press <span className="text-white font-bold">Backspace</span> or <span className="text-white font-bold">M</span> = Missed.
+                <div className="text-xs text-base-content/80 font-mono">
+                  Press <span className="font-bold text-base-content">Spacebar</span> or <span className="font-bold text-base-content">Enter</span> = Got it! <br />
+                  Press <span className="font-bold text-base-content">Backspace</span> or <span className="font-bold text-base-content">M</span> = Missed.
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={() => setShowHelp(false)}
-              className="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl transition-colors text-sm"
-            >
-              Close Guide
-            </button>
+            <div className="modal-action">
+              <button
+                onClick={() => setShowHelp(false)}
+                className="btn btn-primary btn-block"
+              >
+                Close Guide
+              </button>
+            </div>
           </div>
         </div>,
         document.body

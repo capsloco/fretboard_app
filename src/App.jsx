@@ -321,67 +321,38 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-6 lg:p-8 flex flex-col justify-between space-y-3 sm:space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col">
         {sessionState === 'idle' ? (
-          /* IDLE / HERO LANDING SCREEN */
-          <div className="my-auto flex flex-col items-center text-center space-y-8 py-12 px-4 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-xs uppercase tracking-widest shadow-lg shadow-cyan-500/10">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              Hands-Free Fretboard Mastery
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight">
-              Train Note Recall <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500">
-                From 4 to 6 Feet Away
-              </span>
-            </h1>
-
-            <p className="text-slate-400 text-base sm:text-lg max-w-xl font-normal leading-relaxed">
-              Set your device down, grab your physical guitar or bass, and react hands-free using high-visibility prompts and voice controls.
-            </p>
-
-            {/* Quick Session Launch Card */}
-            <div className="w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
-                  <div>
-                    <div className="text-xs font-mono text-slate-500 uppercase">Selected Instrument & Tuning</div>
-                    <div className="font-bold text-cyan-300 text-sm mt-1">{currentInstrument.title}</div>
-                    <div className="text-xs font-mono text-slate-400 mt-0.5">
-                      {currentInstrument.stringCount} Strings ({currentInstrument.fretCount} Frets)
-                    </div>
-                  </div>
-                  <div className="mt-2 text-xs font-mono text-cyan-400 font-semibold bg-cyan-950/50 px-2.5 py-1 rounded-lg border border-cyan-800/40 inline-block self-start">
-                    ⚡ {currentInstrument.tuning?.join(' - ')}
-                  </div>
+          /* IDLE / LAUNCHPAD SCREEN */
+          <div className="my-auto flex flex-col items-center text-center py-8 px-4">
+            <div className="card bg-base-100 border border-base-300 shadow-2xl max-w-2xl w-full p-8 sm:p-12">
+              <div className="card-body items-center p-0">
+                <div className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-4">
+                  <Play className="w-8 h-8 text-primary ml-1" />
                 </div>
 
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                  <div className="text-xs font-mono text-slate-500 uppercase">Selected Mode</div>
-                  <div className="font-bold text-white text-sm mt-1">
-                    {config.sessionMode === 'tracked' ? 'Pass / Fail Tracked' : 'Timed Flashcard'}
-                  </div>
-                  <div className="text-xs font-mono text-slate-400 mt-1">
-                    Frets {config.minFret}–{config.maxFret} • {config.promptType === 'global' ? 'Global' : 'String Specific'}
-                  </div>
+                <h2 className="text-3xl sm:text-5xl font-black text-base-content mb-3">
+                  Ready to Practice?
+                </h2>
+                <p className="text-base-content/70 max-w-md text-sm sm:text-base font-medium mb-8">
+                  Train note recognition on the fretboard using voice commands, guitar plucks, or hands-free flashcards.
+                </p>
+
+                <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    onClick={startNewSession}
+                    className="btn btn-primary btn-lg font-black uppercase tracking-wider w-full sm:w-auto shadow-xl"
+                  >
+                    <Play className="w-5 h-5 fill-current" /> Start Practice
+                  </button>
+
+                  <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="btn btn-neutral btn-outline btn-lg font-bold w-full sm:w-auto"
+                  >
+                    <Sliders className="w-5 h-5" /> Configure
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  onClick={startNewSession}
-                  className="flex-1 py-4 px-8 rounded-2xl font-extrabold text-base uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-sky-400 hover:from-cyan-400 hover:to-sky-300 text-slate-950 flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/25 active:scale-95 transition-all"
-                >
-                  <Play className="w-5 h-5 fill-current" /> Start Practice Session
-                </button>
-
-                <button
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="py-4 px-6 rounded-2xl font-bold text-sm uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Sliders className="w-4 h-4 text-slate-400" /> Configure Settings
-                </button>
               </div>
             </div>
           </div>
@@ -405,9 +376,9 @@ export default function App() {
           </div>
         ) : (
           /* ACTIVE PRACTICE SESSION SCREEN */
-          <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-4 py-1">
+          <div className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 py-1">
             {/* Top Bar Controls in Active Session */}
-            <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800/80 rounded-2xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-md">
+            <div className="flex items-center justify-between bg-base-100 border border-base-300 rounded-2xl p-3 shadow-md backdrop-blur-md">
               <div className="flex items-center gap-2">
                 <VoiceController onCommand={handleVoiceCommand} />
               </div>
@@ -415,7 +386,7 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={finishSession}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  className="btn btn-neutral btn-sm font-bold uppercase tracking-wider"
                 >
                   End Round
                 </button>
@@ -438,17 +409,17 @@ export default function App() {
               <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-1 sm:my-2">
                 <button
                   onClick={handleMiss}
-                  className="py-3 sm:py-5 px-3 sm:px-6 rounded-2xl font-black text-sm sm:text-xl uppercase tracking-wider bg-gradient-to-tr from-rose-950 via-rose-900 to-rose-950 hover:from-rose-900 hover:to-rose-800 text-rose-200 border-2 border-rose-600/70 shadow-[0_0_25px_rgba(225,29,72,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 cursor-pointer"
+                  className="btn btn-error btn-lg font-black uppercase text-base sm:text-xl shadow-lg gap-2"
                 >
-                  <XCircle className="w-5 h-5 sm:w-7 sm:h-7 text-rose-400 stroke-[2.5]" />
+                  <XCircle className="w-6 h-6 stroke-[2.5]" />
                   <span>MISSED ("Missed")</span>
                 </button>
 
                 <button
                   onClick={handlePass}
-                  className="py-3 sm:py-5 px-3 sm:px-6 rounded-2xl font-black text-sm sm:text-xl uppercase tracking-wider bg-gradient-to-tr from-emerald-950 via-emerald-900 to-emerald-950 hover:from-emerald-900 hover:to-emerald-800 text-emerald-200 border-2 border-emerald-500/70 shadow-[0_0_25px_rgba(16,185,129,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2 sm:gap-3 cursor-pointer"
+                  className="btn btn-success btn-lg font-black uppercase text-base sm:text-xl shadow-lg gap-2"
                 >
-                  <CheckCircle2 className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-400 stroke-[2.5]" />
+                  <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
                   <span>GOT IT ("Got it")</span>
                 </button>
               </div>
@@ -471,26 +442,26 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-slate-800/60 py-4 px-6 text-xs font-mono text-slate-400 bg-slate-950">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="footer footer-center p-4 bg-base-100 text-base-content/70 border-t border-base-300 text-xs font-mono">
+        <div className="max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>© {new Date().getFullYear()} FretLearn</div>
-          <div className="flex items-center gap-4 text-[11px]">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => {
                 setLegalTab('privacy');
                 setIsLegalOpen(true);
               }}
-              className="hover:text-cyan-400 transition-colors"
+              className="link link-hover hover:text-primary transition-colors"
             >
               Privacy Policy
             </button>
-            <span className="text-slate-700">•</span>
+            <span>•</span>
             <button
               onClick={() => {
                 setLegalTab('terms');
                 setIsLegalOpen(true);
               }}
-              className="hover:text-cyan-400 transition-colors"
+              className="link link-hover hover:text-primary transition-colors"
             >
               Terms of Service
             </button>

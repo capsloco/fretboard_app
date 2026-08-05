@@ -49,24 +49,18 @@ export default function SessionSettingsModal({
         </div>
 
         {/* Tab Selector */}
-        <div className="flex border-b border-slate-800 bg-slate-950/30 px-6 pt-3 gap-2">
+        <div role="tablist" className="tabs tabs-border bg-base-200/50 px-6 pt-2 border-b border-base-300">
           <button
+            role="tab"
             onClick={() => setActiveTab('session')}
-            className={`pb-3 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center gap-1.5 ${
-              activeTab === 'session'
-                ? 'border-cyan-400 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+            className={activeTab === 'session' ? 'tab tab-active font-bold text-xs uppercase tracking-wider gap-2' : 'tab font-bold text-xs uppercase tracking-wider text-base-content/70 gap-2'}
           >
             <Target className="w-4 h-4" /> Session & Mechanics
           </button>
           <button
+            role="tab"
             onClick={() => setActiveTab('instrument')}
-            className={`pb-3 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center gap-1.5 ${
-              activeTab === 'instrument'
-                ? 'border-cyan-400 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+            className={activeTab === 'instrument' ? 'tab tab-active font-bold text-xs uppercase tracking-wider gap-2' : 'tab font-bold text-xs uppercase tracking-wider text-base-content/70 gap-2'}
           >
             <Music className="w-4 h-4" /> Instrument Setup
           </button>
@@ -84,11 +78,7 @@ export default function SessionSettingsModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div
                     onClick={() => onChangeConfig('sessionMode', 'tracked')}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                      config.sessionMode === 'tracked'
-                        ? 'bg-base-200 border-primary shadow-lg'
-                        : 'bg-base-100 border-base-300 hover:border-base-content/40'
-                    }`}
+                    className={config.sessionMode === 'tracked' ? 'p-4 rounded-2xl border cursor-pointer transition-colors bg-base-200 border-primary shadow-lg' : 'p-4 rounded-2xl border cursor-pointer transition-colors bg-base-100 border-base-300 hover:border-base-content/40'}
                   >
                     <div className="font-bold text-base-content text-sm mb-1 flex items-center justify-between">
                       Pass / Fail Mode (Tracked)
@@ -100,11 +90,7 @@ export default function SessionSettingsModal({
 
                   <div
                     onClick={() => onChangeConfig('sessionMode', 'flashcard')}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                      config.sessionMode === 'flashcard'
-                        ? 'bg-base-200 border-primary shadow-lg'
-                        : 'bg-base-100 border-base-300 hover:border-base-content/40'
-                    }`}
+                    className={config.sessionMode === 'flashcard' ? 'p-4 rounded-2xl border cursor-pointer transition-colors bg-base-200 border-primary shadow-lg' : 'p-4 rounded-2xl border cursor-pointer transition-colors bg-base-100 border-base-300 hover:border-base-content/40'}
                   >
                     <div className="font-bold text-base-content text-sm mb-1">
                       Timed Flashcard (No Tracking)
@@ -125,10 +111,12 @@ export default function SessionSettingsModal({
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs font-mono text-base-content/70 block mb-1">
+                      <label htmlFor="flashcard-sec-input" className="text-xs font-mono text-base-content/70 block mb-1 cursor-pointer">
                         Seconds Per Note ({config.flashcardSecondsPerNote}s)
-                      </span>
+                      </label>
                       <input
+                        id="flashcard-sec-input"
+                        aria-label="Flashcard seconds per note"
                         type="range"
                         min="1"
                         max="10"
@@ -138,10 +126,12 @@ export default function SessionSettingsModal({
                       />
                     </div>
                     <div>
-                      <span className="text-xs font-mono text-base-content/70 block mb-1">
+                      <label htmlFor="flashcard-min-input" className="text-xs font-mono text-base-content/70 block mb-1 cursor-pointer">
                         Loop Duration ({config.flashcardDurationMins} min)
-                      </span>
+                      </label>
                       <input
+                        id="flashcard-min-input"
+                        aria-label="Flashcard duration in minutes"
                         type="range"
                         min="1"
                         max="30"
@@ -166,22 +156,14 @@ export default function SessionSettingsModal({
                   <button
                     type="button"
                     onClick={() => onChangeConfig('promptType', 'global')}
-                    className={`btn btn-sm ${
-                      config.promptType === 'global'
-                        ? 'btn-primary font-extrabold'
-                        : 'btn-neutral btn-outline'
-                    } font-mono uppercase text-xs`}
+                    className={config.promptType === 'global' ? 'btn btn-sm btn-primary font-extrabold font-mono uppercase text-xs' : 'btn btn-sm btn-neutral btn-ghost font-mono uppercase text-xs'}
                   >
                     Global Note (e.g. "Find C")
                   </button>
                   <button
                     type="button"
                     onClick={() => onChangeConfig('promptType', 'string_specific')}
-                    className={`btn btn-sm ${
-                      config.promptType === 'string_specific'
-                        ? 'btn-primary font-extrabold'
-                        : 'btn-neutral btn-outline'
-                    } font-mono uppercase text-xs`}
+                    className={config.promptType === 'string_specific' ? 'btn btn-sm btn-primary font-extrabold font-mono uppercase text-xs' : 'btn btn-sm btn-neutral btn-ghost font-mono uppercase text-xs'}
                   >
                     String Specific (e.g. "Find C on A string")
                   </button>
@@ -192,12 +174,14 @@ export default function SessionSettingsModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-base-200 border border-base-300 rounded-2xl p-4 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-base-content text-xs uppercase font-mono">Include Sharps and Flats</div>
+                    <label htmlFor="accidentals-toggle" className="font-bold text-base-content text-xs uppercase font-mono cursor-pointer block">Include Sharps and Flats</label>
                     <div className="text-[11px] text-base-content/70">
                       {config.includeAccidentals ? 'Sharps & Flats included' : 'Naturals Only (A-G)'}
                     </div>
                   </div>
                   <input
+                    id="accidentals-toggle"
+                    aria-label="Include sharps and flats"
                     type="checkbox"
                     checked={config.includeAccidentals}
                     onChange={(e) => onChangeConfig('includeAccidentals', e.target.checked)}

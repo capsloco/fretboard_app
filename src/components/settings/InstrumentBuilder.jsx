@@ -159,7 +159,7 @@ export default function InstrumentBuilder({
                         tuning: defaultTuning ? [...defaultTuning.tuning] : [...preset.tuning]
                       });
                     }}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                    className={`p-4 rounded-2xl border cursor-pointer transition-colors duration-200 ${
                       isSelected
                         ? 'bg-base-200 border-primary shadow-md'
                         : 'bg-base-100 border-base-300 hover:border-base-content/40'
@@ -190,7 +190,7 @@ export default function InstrumentBuilder({
                       <div
                         key={inst.id}
                         onClick={() => onSelectInstrument(inst)}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                        className={`p-4 rounded-2xl border cursor-pointer transition-colors duration-200 ${
                           isSelected
                             ? 'bg-base-200 border-primary shadow-md'
                             : 'bg-base-100 border-base-300 hover:border-base-content/40'
@@ -329,23 +329,27 @@ export default function InstrumentBuilder({
         /* Custom Builder Form */
         <form onSubmit={handleSaveCustom} className="space-y-5">
           <div>
-            <label className="block text-xs font-mono text-base-content/70 uppercase mb-1">Instrument Profile Title</label>
+            <label htmlFor="inst-profile-title" className="block text-xs font-mono text-base-content/70 uppercase mb-1 cursor-pointer">Instrument Profile Title</label>
             <input
+              id="inst-profile-title"
+              aria-label="Instrument profile title"
               type="text"
               placeholder="e.g. My 8-String Djent Rig or Studio Bass"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="input input-bordered w-full text-sm"
+              className="input w-full text-sm"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono text-base-content/70 uppercase mb-1">
+              <label htmlFor="custom-string-count" className="block text-xs font-mono text-base-content/70 uppercase mb-1 cursor-pointer">
                 Number of Strings ({stringCount})
               </label>
               <input
+                id="custom-string-count"
+                aria-label="Number of strings"
                 type="range"
                 min="4"
                 max="8"
@@ -355,10 +359,12 @@ export default function InstrumentBuilder({
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-base-content/70 uppercase mb-1">
+              <label htmlFor="custom-fret-count" className="block text-xs font-mono text-base-content/70 uppercase mb-1 cursor-pointer">
                 Number of Frets ({fretCount})
               </label>
               <input
+                id="custom-fret-count"
+                aria-label="Number of frets"
                 type="range"
                 min="12"
                 max="24"

@@ -3,20 +3,20 @@ import { SlidersHorizontal } from 'lucide-react';
 
 export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChangeMax, maxInstrumentFrets = 24 }) {
   const quickPresets = [
-    { label: 'Open Position (0–5)', min: 0, max: 5 },
-    { label: 'Mid Neck (5–12)', min: 5, max: 12 },
-    { label: 'Upper Frets (12–24)', min: 12, max: maxInstrumentFrets },
-    { label: 'Full Fretboard (0–24)', min: 0, max: maxInstrumentFrets },
+    { label: 'Open (0–5)', min: 0, max: 5 },
+    { label: 'Mid (5–12)', min: 5, max: 12 },
+    { label: 'Upper (12–24)', min: 12, max: maxInstrumentFrets },
+    { label: 'Full (0–24)', min: 0, max: maxInstrumentFrets },
   ];
 
   return (
     <div className="bg-base-200 border border-base-300 rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-mono text-base-content/70 uppercase tracking-wider flex items-center gap-1.5">
+        <label htmlFor="min-fret-slider" className="text-xs font-mono text-base-content/70 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
           <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
           Fret Range Boundaries
         </label>
-        <span className="text-xs font-mono text-cyan-300 font-bold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50">
+        <span className="badge badge-primary font-mono text-xs font-bold">
           Frets {minFret} – {maxFret}
         </span>
       </div>
@@ -33,10 +33,10 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
                 onChangeMin(preset.min);
                 onChangeMax(preset.max);
               }}
-              className={`py-1.5 px-2 rounded-xl text-xs font-semibold font-mono transition-all ${
+              className={`btn btn-xs font-mono font-bold ${
                 isActive
-                  ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                  ? 'btn-primary'
+                  : 'btn-ghost'
               }`}
             >
               {preset.label}
@@ -48,25 +48,33 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
       {/* Dual Sliders */}
       <div className="grid grid-cols-2 gap-4 pt-1">
         <div>
-          <span className="text-[10px] font-mono text-slate-500">Min Fret ({minFret})</span>
+          <label htmlFor="min-fret-slider" className="text-[10px] font-mono text-base-content/70 block mb-1">
+            Min Fret ({minFret})
+          </label>
           <input
+            id="min-fret-slider"
+            aria-label="Minimum fret boundary"
             type="range"
             min="0"
             max={maxFret}
             value={minFret}
             onChange={(e) => onChangeMin(parseInt(e.target.value, 10))}
-            className="w-full accent-cyan-500"
+            className="range range-primary range-xs"
           />
         </div>
         <div>
-          <span className="text-[10px] font-mono text-slate-500">Max Fret ({maxFret})</span>
+          <label htmlFor="max-fret-slider" className="text-[10px] font-mono text-base-content/70 block mb-1">
+            Max Fret ({maxFret})
+          </label>
           <input
+            id="max-fret-slider"
+            aria-label="Maximum fret boundary"
             type="range"
             min={minFret}
             max={maxInstrumentFrets}
             value={maxFret}
             onChange={(e) => onChangeMax(parseInt(e.target.value, 10))}
-            className="w-full accent-cyan-500"
+            className="range range-primary range-xs"
           />
         </div>
       </div>

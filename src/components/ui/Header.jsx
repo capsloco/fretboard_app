@@ -5,7 +5,7 @@ import { signInWithGoogle, signOut } from '../../lib/supabase';
 const THEME_PRESETS = [
   { group: '☀️ Clean & Light', themes: ['emerald', 'nord', 'silk', 'autumn'] },
   { group: '🌙 Dark & Night', themes: ['dim', 'night', 'sunset', 'dracula', 'abyss'] },
-  { group: '⚡ Vibrant & Neon', themes: ['synthwave', 'cyberpunk', 'acid'] }
+  { group: '⚡ Vibrant & Neon', themes: ['synthwave', 'acid'] }
 ];
 
 export default function Header({

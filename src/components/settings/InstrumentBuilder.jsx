@@ -195,7 +195,7 @@ export default function InstrumentBuilder({
 
           {/* Step 2: On-The-Fly Tuning Selector & Details */}
           <fieldset className="fieldset bg-base-200/50 border border-base-300 rounded-box p-5 space-y-4 shadow-inner">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-base-300 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-base-300 pb-3">
               <div>
                 <legend className="fieldset-legend font-mono text-xs uppercase tracking-wider text-base-content/80 font-bold flex items-center gap-1.5 p-0">
                   <Zap className="w-4 h-4 text-primary" /> 2. Select Tuning for {currentInstrument?.title}
@@ -211,7 +211,7 @@ export default function InstrumentBuilder({
                 aria-label="Select tuning preset"
                 value={activeTuningId}
                 onChange={(e) => handleSelectTuningForActive(e.target.value)}
-                className="select select-sm select-ghost bg-base-100 border border-base-300 text-primary font-mono font-bold cursor-pointer"
+                className="select select-sm border border-base-300 bg-base-100 text-base-content font-mono font-bold cursor-pointer"
               >
                 {Object.entries(groupedTuningsForCurrent).map(([category, tunings]) => (
                   <optgroup key={category} label={category} className="bg-base-200 text-base-content font-bold">
@@ -232,19 +232,16 @@ export default function InstrumentBuilder({
             {currentMatchingPreset && activeTuningId !== 'custom' ? (
               <div className="card bg-base-100 border border-base-300 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-base-content flex items-center gap-2">
+                  <span className="text-sm font-bold text-base-content">
                     {currentMatchingPreset.name}
-                    <span className="badge badge-primary badge-sm font-mono">
-                      {currentMatchingPreset.category}
-                    </span>
                   </span>
                   <span className="text-xs font-mono text-success flex items-center gap-1">
-                    <Lock className="w-3.5 h-3.5" /> Preset Locked
+                    <Lock className="w-3.5 h-3.5" /> Preset Active
                   </span>
                 </div>
 
                 {currentMatchingPreset.octaves && (
-                  <div className="text-xs font-mono text-primary bg-base-200 p-2 rounded-lg border border-base-300">
+                  <div className="text-xs font-mono text-base-content/80 bg-base-200 p-2 rounded-lg border border-base-300">
                     <span className="text-base-content/70 mr-2">Octaves:</span>
                     <strong className="text-base-content">{currentMatchingPreset.octaves}</strong>
                   </div>
@@ -289,7 +286,7 @@ export default function InstrumentBuilder({
                           aria-label={`String ${displayStrNum} note`}
                           value={note}
                           onChange={(e) => handleActiveStringNoteChange(sIdx, e.target.value)}
-                          className="select select-xs select-primary w-full font-mono font-bold text-center"
+                          className="select select-xs select-primary border border-base-300 w-full font-mono font-bold text-center"
                         >
                           {CHROMATIC_SHARPS.map((n) => (
                             <option key={n} value={n}>{n}</option>

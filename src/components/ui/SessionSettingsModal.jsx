@@ -30,7 +30,7 @@ export default function SessionSettingsModal({
       onClick={onClose}
     >
       <div
-        className="modal-box bg-base-100 border border-base-300 max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden p-0"
+        className="modal-box bg-base-100 border border-base-300 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden p-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}

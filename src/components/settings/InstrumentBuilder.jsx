@@ -97,14 +97,14 @@ export default function InstrumentBuilder({
   };
 
   return (
-    <div className="card bg-base-100 border border-base-300 rounded-3xl p-6 shadow-2xl space-y-6">
+    <div className="space-y-6">
       {/* Top Header & Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-base-200 pb-4">
-        <h3 className="text-xl font-bold text-base-content flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-base-200 pb-4">
+        <h3 className="text-lg font-bold text-base-content flex items-center gap-2">
           <Music className="w-5 h-5 text-primary" />
           Instrument & Tuning Manager
         </h3>
-        <div className="flex bg-base-200 p-1 rounded-xl border border-base-300">
+        <div className="flex bg-base-200 p-1 rounded-xl border border-base-300 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setActiveTab('profiles')}

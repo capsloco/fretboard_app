@@ -55,7 +55,27 @@ export default function Fretboard({
   const hasNut = startFret === 0;
   const numberedFrets = fretsToDisplay.filter(f => f > 0);
 
-  const activeTheme = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-theme') || 'emerald') : 'emerald';
+  const [activeTheme, setActiveTheme] = React.useState(() => {
+    return typeof document !== 'undefined'
+      ? (document.documentElement.getAttribute('data-theme') || 'emerald')
+      : 'emerald';
+  });
+
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const observer = new MutationObserver(() => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'emerald';
+      setActiveTheme(currentTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const isLightWood = ['emerald', 'nord', 'silk', 'autumn'].includes(activeTheme);
 
   const woodStyle = isLightWood

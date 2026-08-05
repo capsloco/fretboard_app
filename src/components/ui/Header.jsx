@@ -57,16 +57,16 @@ export default function Header({
     setUser(null);
   };
 
-  // Dead-centered, ultra-minimal arrow handle during active practice session
+  // Sleek, ultra-minimal floating arrow handle during active practice session
   if (isSessionRunning && isCollapsed) {
     return (
-      <div className="w-full sticky top-0 z-40 flex justify-center pointer-events-none">
+      <div className="w-full sticky top-0 z-40 flex justify-center pointer-events-none pt-1">
         <button
           onClick={() => setIsCollapsed(false)}
-          className="pointer-events-auto btn btn-sm btn-ghost bg-base-200/90 hover:bg-base-300 border-x border-b border-base-300 text-primary shadow-xl backdrop-blur-md rounded-b-2xl px-5 cursor-pointer flex items-center justify-center gap-1.5 group"
+          className="pointer-events-auto p-2 text-primary/80 hover:text-primary transition-colors duration-200 cursor-pointer flex items-center justify-center rounded-full hover:bg-base-200/50 backdrop-blur-xs group"
           title="Expand Header Menu"
         >
-          <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+          <ChevronDown className="w-6 h-6 drop-shadow-sm group-hover:translate-y-0.5 transition-transform" />
         </button>
       </div>
     );

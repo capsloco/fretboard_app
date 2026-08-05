@@ -30,7 +30,8 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+            className="btn btn-sm btn-ghost btn-circle font-bold"
+            aria-label="Close Legal Modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -40,22 +41,14 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
         <div className="grid grid-cols-2 gap-2 p-1 bg-base-200 rounded-2xl border border-base-300 shrink-0 text-xs font-mono">
           <button
             onClick={() => setActiveTab('privacy')}
-            className={`btn btn-xs font-bold flex items-center justify-center gap-2 ${
-              activeTab === 'privacy'
-                ? 'btn-primary'
-                : 'btn-ghost'
-            }`}
+            className={activeTab === 'privacy' ? 'btn btn-xs btn-primary font-bold flex items-center justify-center gap-2' : 'btn btn-xs btn-ghost font-bold flex items-center justify-center gap-2'}
           >
             <Lock className="w-4 h-4" />
             <span>Privacy Policy</span>
           </button>
           <button
             onClick={() => setActiveTab('terms')}
-            className={`btn btn-xs font-bold flex items-center justify-center gap-2 ${
-              activeTab === 'terms'
-                ? 'btn-primary'
-                : 'btn-ghost'
-            }`}
+            className={activeTab === 'terms' ? 'btn btn-xs btn-primary font-bold flex items-center justify-center gap-2' : 'btn btn-xs btn-ghost font-bold flex items-center justify-center gap-2'}
           >
             <FileText className="w-4 h-4" />
             <span>Terms of Service</span>
@@ -76,7 +69,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <section className="space-y-2">
                 <h4 className="text-base font-bold text-base-content">1. Information We Collect</h4>
                 <p>When you use FretLearn, we may collect the following information:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
+                <ul className="space-y-1 text-xs text-base-content/70 font-mono pl-2">
                   <li><strong>Account Information:</strong> Your email address and basic profile info provided via Google OAuth or Magic Link sign-in.</li>
                   <li><strong>Practice Data:</strong> Your custom instrument setups, practice round accuracy, session durations, and preference settings.</li>
                   <li><strong>Technical Data:</strong> Analytics telemetry (via Google Tag Manager) such as browser type, device type, and page usage.</li>
@@ -86,7 +79,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <section className="space-y-2">
                 <h4 className="text-base font-bold text-base-content">2. How We Use Your Data</h4>
                 <p>We use collected data solely to:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
+                <ul className="space-y-1 text-xs text-base-content/70 font-mono pl-2">
                   <li>Authenticate your account and enable cloud synchronization across devices.</li>
                   <li>Persist your custom instrument tunings, fret ranges, and practice streaks.</li>
                   <li>Analyze aggregate platform usage to improve app responsiveness and features.</li>
@@ -105,7 +98,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
                 <p>
                   FretLearn integrates with third-party service providers for authentication and analytics:
                 </p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
+                <ul className="space-y-1 text-xs text-base-content/70 font-mono pl-2">
                   <li><strong>Supabase Auth & Database:</strong> User authentication and cloud data persistence.</li>
                   <li><strong>Google OAuth:</strong> Identity verification for Google Sign-In.</li>
                   <li><strong>Google Tag Manager:</strong> Anonymous usage analytics.</li>
@@ -152,7 +145,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               <section className="space-y-2">
                 <h4 className="text-base font-bold text-base-content">4. Prohibited Conduct</h4>
                 <p>You agree not to:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
+                <ul className="space-y-1 text-xs text-base-content/70 font-mono pl-2">
                   <li>Attempt to gain unauthorized access to service infrastructure or other user accounts.</li>
                   <li>Use automated bots or scrapers to overwhelm service APIs.</li>
                   <li>Reverse engineer or disassemble core application logic.</li>
@@ -173,7 +166,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
         <div className="pt-3 border-t border-base-200 flex justify-end shrink-0">
           <button
             onClick={onClose}
-            className="btn btn-neutral font-bold text-xs uppercase"
+            className="btn btn-ghost border border-base-300 font-bold text-xs uppercase text-base-content hover:bg-base-200"
           >
             Close
           </button>

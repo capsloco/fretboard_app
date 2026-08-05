@@ -127,7 +127,7 @@ export default function VoiceController({ onCommand }) {
         {speechSupported ? (
           <button
             onClick={() => handleModeSelect('speech')}
-            className={`btn btn-sm ${activeMode === 'speech' ? 'btn-success animate-pulse' : 'btn-neutral btn-outline'} font-bold uppercase gap-1.5`}
+            className={activeMode === 'speech' ? 'btn btn-sm btn-success animate-pulse font-bold uppercase gap-1.5' : 'btn btn-sm btn-ghost border border-base-300 font-bold uppercase gap-1.5 text-base-content hover:bg-base-200'}
           >
             <Mic className="w-4 h-4" />
             <span>{activeMode === 'speech' ? 'Voice Active' : 'Enable Voice'}</span>
@@ -137,7 +137,7 @@ export default function VoiceController({ onCommand }) {
         {/* Universal Pluck / Snap Audio Trigger (Works 100% in Firefox) */}
         <button
           onClick={() => handleModeSelect('sound')}
-          className={`btn btn-sm ${activeMode === 'sound' ? 'btn-primary animate-pulse' : 'btn-neutral btn-outline'} font-bold uppercase gap-1.5`}
+          className={activeMode === 'sound' ? 'btn btn-sm btn-primary animate-pulse font-bold uppercase gap-1.5' : 'btn btn-sm btn-ghost border border-base-300 font-bold uppercase gap-1.5 text-base-content hover:bg-base-200'}
           title="Detects guitar string plucks, snaps, or loud notes hands-free in ANY browser"
         >
           <Zap className="w-4 h-4" />

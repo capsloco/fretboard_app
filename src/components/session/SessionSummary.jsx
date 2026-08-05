@@ -28,10 +28,10 @@ export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
         Session Complete
       </div>
 
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+      <h2 className="text-3xl sm:text-4xl font-extrabold text-base-content">
         Practice Summary
       </h2>
-      <p className="text-slate-400 text-sm font-mono">
+      <p className="text-base-content/70 text-sm font-mono">
         {instrumentTitle} • {sessionType === 'tracked' ? 'Tracked Round' : 'Timed Flashcard'}
       </p>
 
@@ -93,7 +93,7 @@ export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
 
         <button
           onClick={onOpenSettings}
-          className="btn btn-neutral btn-outline btn-lg font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+          className="btn btn-ghost border border-base-300 btn-lg font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-base-content hover:bg-base-200"
         >
           <Sliders className="w-4 h-4" /> Configure Settings
         </button>

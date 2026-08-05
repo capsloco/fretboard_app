@@ -55,7 +55,7 @@ export default function DisplayPrompt({
           </div>
 
           {/* Massive Target Note Banner */}
-          <div className="relative my-2 select-none">
+          <div className="relative my-2">
             <h1 className="text-6xl sm:text-9xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-base-content via-base-content/90 to-primary drop-shadow-md">
               {prompt.note}
             </h1>
@@ -76,7 +76,7 @@ export default function DisplayPrompt({
           <div className="card-actions justify-center mt-6">
             <button
               onClick={onRevealToggle}
-              className={`btn ${isRevealed ? 'btn-neutral btn-outline' : 'btn-primary'} btn-md sm:btn-lg font-extrabold uppercase tracking-wider shadow-lg`}
+              className={isRevealed ? 'btn btn-secondary btn-outline btn-md sm:btn-lg font-extrabold uppercase tracking-wider shadow-lg' : 'btn btn-primary btn-md sm:btn-lg font-extrabold uppercase tracking-wider shadow-lg'}
             >
               {isRevealed ? 'Hide Answer on Neck' : 'Reveal Answer on Neck'}
             </button>

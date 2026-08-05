@@ -3,7 +3,7 @@ import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronU
 import { signInWithGoogle, signOut } from '../../lib/supabase';
 
 const THEME_PRESETS = [
-  { group: '☀️ Clean & Light', themes: ['emerald', 'nord', 'corporate', 'winter', 'silk', 'autumn', 'retro', 'light'] },
+  { group: '☀️ Clean & Light', themes: ['emerald', 'nord', 'silk', 'autumn'] },
   { group: '🌙 Dark & Night', themes: ['dim', 'night', 'sunset', 'dracula', 'abyss'] },
   { group: '⚡ Vibrant & Neon', themes: ['synthwave', 'cyberpunk', 'acid'] }
 ];
@@ -109,7 +109,7 @@ export default function Header({
         <div className="relative" ref={themeRef}>
           <button
             onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-            className="btn btn-sm btn-ghost flex items-center gap-1.5 font-bold border border-base-300"
+            className="btn btn-sm btn-ghost flex items-center gap-1.5 font-bold border border-base-300 text-base-content"
             title="Switch Theme Preset"
           >
             <Palette className="w-4 h-4 text-primary" />
@@ -157,7 +157,7 @@ export default function Header({
         {/* Settings Modal Button */}
         <button
           onClick={onOpenSettings}
-          className="btn btn-sm btn-outline btn-neutral flex items-center gap-1.5 font-bold"
+          className="btn btn-sm btn-ghost border border-base-300 flex items-center gap-1.5 font-bold text-base-content hover:bg-base-200"
         >
           <Sliders className="w-4 h-4 text-primary" />
           <span className="hidden sm:inline">Configure</span>

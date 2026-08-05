@@ -348,7 +348,7 @@ export default function App() {
 
                   <button
                     onClick={() => setIsSettingsOpen(true)}
-                    className="btn btn-neutral btn-outline btn-lg font-bold w-full sm:w-auto"
+                    className="btn btn-ghost border border-base-300 hover:bg-base-200 text-base-content btn-lg font-bold w-full sm:w-auto"
                   >
                     <Sliders className="w-5 h-5" /> Configure
                   </button>
@@ -386,7 +386,7 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={finishSession}
-                  className="btn btn-neutral btn-sm font-bold uppercase tracking-wider"
+                  className="btn btn-ghost border border-base-300 text-base-content hover:bg-base-200 btn-sm font-bold uppercase tracking-wider"
                 >
                   End Round
                 </button>
@@ -409,7 +409,7 @@ export default function App() {
               <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-2">
                 <button
                   onClick={handleMiss}
-                  className="btn btn-soft btn-error btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-md gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-all"
+                  className="btn btn-soft btn-error btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-md gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-transform"
                 >
                   <XCircle className="w-6 h-6 stroke-[2.5]" />
                   <span>Missed</span>
@@ -417,7 +417,7 @@ export default function App() {
 
                 <button
                   onClick={handlePass}
-                  className="btn btn-success btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-lg gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-all"
+                  className="btn btn-success btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-lg gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-transform"
                 >
                   <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
                   <span>Got It</span>

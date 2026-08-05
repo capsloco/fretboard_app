@@ -55,6 +55,21 @@ export default function Fretboard({
   const hasNut = startFret === 0;
   const numberedFrets = fretsToDisplay.filter(f => f > 0);
 
+  const activeTheme = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-theme') || 'emerald') : 'emerald';
+  const isLightWood = ['emerald', 'nord', 'silk', 'autumn'].includes(activeTheme);
+
+  const woodStyle = isLightWood
+    ? {
+        backgroundColor: '#eee0c9',
+        backgroundImage: `linear-gradient(90deg, rgba(220, 195, 155, 0.4) 0%, rgba(245, 235, 215, 0.6) 50%, rgba(220, 195, 155, 0.4) 100%), repeating-linear-gradient(0deg, rgba(140, 100, 50, 0.07) 0px, rgba(140, 100, 50, 0.07) 1px, transparent 1px, transparent 3px)`,
+        boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.18)'
+      }
+    : {
+        backgroundColor: '#241712',
+        backgroundImage: `linear-gradient(90deg, rgba(28, 17, 13, 0.88) 0%, rgba(48, 32, 25, 0.95) 50%, rgba(28, 17, 13, 0.88) 100%), repeating-linear-gradient(0deg, rgba(10, 6, 4, 0.35) 0px, rgba(10, 6, 4, 0.35) 1px, transparent 1px, transparent 4px)`,
+        boxShadow: 'inset 0 2px 12px rgba(0, 0, 0, 0.5)'
+      };
+
   return (
     <div className="card bg-base-100 border border-base-300 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent w-full">
       <div className="w-full min-w-full flex flex-col" style={{ minWidth: `${minNeckWidthPx}px` }}>
@@ -84,8 +99,11 @@ export default function Fretboard({
           </div>
         </div>
 
-        {/* Fretboard Grid Container */}
-        <div className="relative w-full border-t border-b border-base-300 rounded-lg bg-base-200 py-1 shadow-inner">
+        {/* Fretboard Grid Container with Maple (Light) or Rosewood (Dark) Texture */}
+        <div
+          className="relative w-full border-t border-b border-base-300 rounded-lg py-1"
+          style={woodStyle}
+        >
           {displayStrings.map((str, displayIdx) => {
             // Calculate string thickness based on pitch (thinnest for High Pitch String 1, thickest for Low Pitch String N)
             const maxIndex = (instrument.stringCount || 6) - 1;
@@ -95,7 +113,11 @@ export default function Fretboard({
               <div key={`string-${str.originalIndex}`} className="relative flex items-center h-10 sm:h-14 group">
                 {/* String Wire Visual */}
                 <div 
-                  className="absolute left-12 sm:left-20 right-0 z-0 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.6)] bg-gradient-to-r from-base-content/50 via-base-content/80 to-base-content/50 opacity-80 group-hover:opacity-100" 
+                  className={
+                    isLightWood
+                      ? 'absolute left-12 sm:left-20 right-0 z-0 transition-opacity shadow-[0_1px_2px_rgba(0,0,0,0.4)] bg-gradient-to-r from-stone-600 via-stone-400 to-stone-600 opacity-90 group-hover:opacity-100'
+                      : 'absolute left-12 sm:left-20 right-0 z-0 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)] bg-gradient-to-r from-slate-400 via-slate-100 to-slate-400 opacity-90 group-hover:opacity-100'
+                  }
                   style={{ height: `${thicknessPx}px` }} 
                 />
 
@@ -147,14 +169,18 @@ export default function Fretboard({
                       <div
                         key={`cell-${str.originalIndex}-${fret}`}
                         onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
-                        className="relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-base-content/30 hover:bg-base-300/40"
+                        className={
+                          isLightWood
+                            ? 'relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-stone-400/50 hover:bg-amber-200/30'
+                            : 'relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-stone-400/40 hover:bg-stone-800/40'
+                        }
                       >
                         {/* Inlay Dots */}
                         {markerType === 'single' && displayIdx === singleDotRow && (
-                          <FretMarker />
+                          <FretMarker isLightWood={isLightWood} />
                         )}
                         {markerType === 'double' && (displayIdx === upperDotRow || displayIdx === lowerDotRow) && (
-                          <FretMarker />
+                          <FretMarker isLightWood={isLightWood} />
                         )}
 
                         {/* Note Badge / Marker */}

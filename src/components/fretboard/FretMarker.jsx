@@ -9,10 +9,16 @@ export function getFretMarkerType(fret) {
   return null;
 }
 
-export default function FretMarker() {
+export default function FretMarker({ isLightWood = false }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-60 z-0">
-      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-base-content/40 border border-base-content/60 shadow-sm" />
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-80 z-0">
+      <div
+        className={
+          isLightWood
+            ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-stone-700/80 border border-stone-900/40 shadow-inner'
+            : 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-tr from-slate-300 via-white to-slate-200 border border-slate-400/50 shadow-[0_0_6px_rgba(255,255,255,0.4)]'
+        }
+      />
     </div>
   );
 }

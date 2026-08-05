@@ -1,11 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Zap, Palette } from 'lucide-react';
+import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Palette } from 'lucide-react';
 import { signInWithGoogle, signOut } from '../../lib/supabase';
-import {
-  getTuningsForInstrument,
-  groupTuningsByCategory,
-  findMatchingTuningPreset
-} from '../../lib/fretLogic';
 
 const THEME_PRESETS = [
   { group: '☀️ Clean & Light', themes: ['emerald', 'nord', 'corporate', 'winter', 'silk', 'autumn', 'retro', 'light'] },
@@ -14,12 +9,10 @@ const THEME_PRESETS = [
 ];
 
 export default function Header({
-  currentInstrument,
   onOpenSettings,
   onOpenAuth,
   user,
   setUser,
-  onSelectTuning,
   isSessionRunning = false
 }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -64,17 +57,6 @@ export default function Header({
     setUser(null);
   };
 
-  const availableTunings = getTuningsForInstrument(
-    currentInstrument?.stringCount || 6,
-    currentInstrument?.type
-  );
-  const groupedTunings = groupTuningsByCategory(availableTunings);
-  const matchingPreset = findMatchingTuningPreset(
-    currentInstrument?.tuning,
-    currentInstrument?.stringCount
-  );
-  const activeTuningId = currentInstrument?.tuningId || (matchingPreset ? matchingPreset.id : 'custom');
-
   // Dead-centered, ultra-minimal arrow handle during active practice session
   if (isSessionRunning && isCollapsed) {
     return (
@@ -110,46 +92,6 @@ export default function Header({
 
       {/* Center & End Controls */}
       <div className="navbar-end flex items-center gap-2 sm:gap-3">
-        {/* Active Instrument & On-The-Fly Tuning Selector */}
-        <div className="hidden md:flex items-center gap-2">
-          <button
-            onClick={onOpenSettings}
-            className="btn btn-sm btn-soft btn-neutral font-mono font-bold flex items-center gap-2"
-          >
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span>{currentInstrument?.title}</span>
-          </button>
-
-          {/* Quick Tuning Selector */}
-          {availableTunings.length > 0 && (
-            <div className="flex items-center gap-1 bg-base-200 border border-base-300 rounded-lg px-2.5 py-1">
-              <Zap className="w-3.5 h-3.5 text-primary" />
-              <select
-                aria-label="Select instrument tuning"
-                value={activeTuningId}
-                onChange={(e) => {
-                  if (onSelectTuning) {
-                    onSelectTuning(e.target.value);
-                  }
-                }}
-                className="select select-xs select-ghost font-mono font-bold text-primary focus:outline-none cursor-pointer"
-              >
-                {Object.entries(groupedTunings).map(([category, tunings]) => (
-                  <optgroup key={category} label={category} className="bg-base-200 text-base-content font-bold">
-                    {tunings.map(t => (
-                      <option key={t.id} value={t.id} className="bg-base-100 text-base-content">
-                        {t.name} ({t.tuning.join(' ')})
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-                <option value="custom" className="bg-base-100 text-primary font-bold">
-                  Custom Tuning ({currentInstrument?.tuning?.join(' ')})
-                </option>
-              </select>
-            </div>
-          )}
-        </div>
 
         {/* Collapse Header Button during Active Practice Session */}
         {isSessionRunning && (

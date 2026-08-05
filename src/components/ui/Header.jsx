@@ -109,7 +109,7 @@ export default function Header({
         <div className="relative" ref={themeRef}>
           <button
             onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-            className="btn btn-sm btn-ghost flex items-center gap-1.5 font-bold border border-base-300 text-base-content"
+            className="btn btn-sm bg-base-200 hover:bg-base-300 border border-base-300 text-base-content font-bold flex items-center gap-1.5 shadow-sm"
             title="Switch Theme Preset"
           >
             <Palette className="w-4 h-4 text-primary" />
@@ -118,7 +118,7 @@ export default function Header({
           </button>
 
           {isThemeMenuOpen && (
-            <div className="p-4 shadow-2xl bg-base-100 rounded-2xl w-[calc(100vw-2rem)] sm:w-[420px] absolute right-0 mt-2 z-50 border border-base-300 max-h-[80vh] overflow-y-auto">
+            <div className="p-4 shadow-2xl bg-base-100 rounded-2xl fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px] z-50 border border-base-300 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-base-200">
                 <div className="text-xs font-bold text-base-content/80 uppercase tracking-wider font-mono flex items-center gap-1.5">
                   <Palette className="w-4 h-4 text-primary" /> Select Theme Preset
@@ -157,7 +157,7 @@ export default function Header({
         {/* Settings Modal Button */}
         <button
           onClick={onOpenSettings}
-          className="btn btn-sm btn-ghost border border-base-300 flex items-center gap-1.5 font-bold text-base-content hover:bg-base-200"
+          className="btn btn-sm bg-base-200 hover:bg-base-300 border border-base-300 text-base-content font-bold flex items-center gap-1.5 shadow-sm"
         >
           <Sliders className="w-4 h-4 text-primary" />
           <span className="hidden sm:inline">Configure</span>

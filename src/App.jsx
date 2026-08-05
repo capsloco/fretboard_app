@@ -7,6 +7,7 @@ import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import AuthModal from './components/ui/AuthModal';
 import LegalModal from './components/ui/LegalModal';
+import CookieConsentBanner from './components/ui/CookieConsentBanner';
 import { generatePrompt, INSTRUMENT_PRESETS, TUNING_PRESETS } from './lib/fretLogic';
 import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState('normal');
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState('privacy');
+  const [isCookieConsentOpen, setIsCookieConsentOpen] = useState(false);
 
   // Session Parameters State
   const [config, setConfig] = useState({
@@ -445,7 +447,7 @@ export default function App() {
       <footer className="footer footer-center p-4 bg-base-100 text-base-content/70 border-t border-base-300 text-xs font-mono">
         <div className="max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>© {new Date().getFullYear()} FretLearn</div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
             <button
               onClick={() => {
                 setLegalTab('privacy');
@@ -464,6 +466,13 @@ export default function App() {
               className="link link-hover hover:text-primary transition-colors"
             >
               Terms of Service
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setIsCookieConsentOpen(true)}
+              className="link link-hover hover:text-primary transition-colors"
+            >
+              Cookie Preferences
             </button>
           </div>
         </div>
@@ -505,6 +514,16 @@ export default function App() {
         isOpen={isLegalOpen}
         onClose={() => setIsLegalOpen(false)}
         initialTab={legalTab}
+      />
+
+      {/* Cookie Consent Banner */}
+      <CookieConsentBanner
+        isOpen={isCookieConsentOpen}
+        onClose={() => setIsCookieConsentOpen(false)}
+        onOpenLegal={() => {
+          setLegalTab('privacy');
+          setIsLegalOpen(true);
+        }}
       />
 
       {/* Vercel Speed Insights */}

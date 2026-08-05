@@ -52,6 +52,9 @@ export default function Fretboard({
   const headerWidthPx = 96;  // px for string label column
   const minNeckWidthPx = headerWidthPx + (fretsToDisplay.length * fretColWidthPx);
 
+  const hasNut = startFret === 0;
+  const numberedFrets = fretsToDisplay.filter(f => f > 0);
+
   return (
     <div className="card bg-base-100 border border-base-300 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent w-full">
       <div className="w-full min-w-full flex flex-col" style={{ minWidth: `${minNeckWidthPx}px` }}>
@@ -60,13 +63,22 @@ export default function Fretboard({
           <div className="w-12 sm:w-20 text-center text-[10px] sm:text-xs font-mono tracking-wider font-semibold text-base-content/60 uppercase shrink-0">
             Str
           </div>
-          <div className="flex-1 grid gap-0 text-center" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(32px, 1fr))` }}>
-            {fretsToDisplay.map(fret => (
+
+          {/* Thin Ivory Nut Header */}
+          {hasNut && (
+            <div className="w-3.5 sm:w-4.5 shrink-0 bg-amber-50 text-amber-950 font-mono text-[9px] font-black text-center py-1 rounded-t border-b-2 border-stone-400 shadow-sm mx-0.5">
+              N
+            </div>
+          )}
+
+          {/* Numbered Frets Header */}
+          <div className="flex-1 grid gap-0 text-center" style={{ gridTemplateColumns: `repeat(${numberedFrets.length}, minmax(32px, 1fr))` }}>
+            {numberedFrets.map(fret => (
               <div
                 key={`head-${fret}`}
-                className={fret === 0 ? 'text-[10px] sm:text-xs font-mono font-bold py-1 bg-base-300 text-base-content rounded-t border-b-2 border-base-content/40 font-extrabold shadow-sm' : 'text-[10px] sm:text-xs font-mono font-bold py-1 text-base-content/80'}
+                className="text-[10px] sm:text-xs font-mono font-bold py-1 text-base-content/80"
               >
-                {fret === 0 ? 'NUT' : fret}
+                {fret}
               </div>
             ))}
           </div>
@@ -97,55 +109,75 @@ export default function Fretboard({
                   </span>
                 </div>
 
-                {/* Fret Cells for this string */}
-                <div className="flex-1 grid h-full z-10" style={{ gridTemplateColumns: `repeat(${fretsToDisplay.length}, minmax(32px, 1fr))` }}>
-                  {fretsToDisplay.map(fret => {
-                    const currentNote = getNoteAtFret(str.openNote, fret, displayMode);
-                    const isHighlighted = isPositionHighlighted(str.originalIndex, fret);
-                    const isTargetNoteMatch = targetNote && getNoteIndex(currentNote) === getNoteIndex(targetNote);
-                    
-                    const isNut = fret === 0;
-                    const markerType = getFretMarkerType(fret);
+                {/* Thin Ivory Nut Cell (Fret 0) */}
+                {hasNut && (() => {
+                  const nutNote = getNoteAtFret(str.openNote, 0, displayMode);
+                  const isNutHighlighted = isPositionHighlighted(str.originalIndex, 0);
+                  const isNutTargetMatch = targetNote && getNoteIndex(nutNote) === getNoteIndex(targetNote);
 
                   return (
                     <div
-                      key={`cell-${str.originalIndex}-${fret}`}
-                      onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
-                      className={isNut ? 'relative flex items-center justify-center cursor-pointer transition-colors duration-200 bg-base-300/80 border-r-4 border-base-content/50 shadow-inner' : 'relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-base-content/30 hover:bg-base-300/40'}
+                      key={`nut-${str.originalIndex}`}
+                      onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret: 0, note: nutNote })}
+                      className="w-3.5 sm:w-4.5 shrink-0 z-10 h-full bg-amber-50 border-r-2 border-l border-stone-400 text-amber-950 flex items-center justify-center cursor-pointer shadow-sm relative mx-0.5 hover:brightness-105"
+                      title={`Nut (Fret 0): ${nutNote}`}
                     >
-                      {/* Inlay Dots */}
-                      {!isNut && (
-                        <>
-                          {markerType === 'single' && displayIdx === singleDotRow && (
-                            <FretMarker />
-                          )}
-                          {markerType === 'double' && (displayIdx === upperDotRow || displayIdx === lowerDotRow) && (
-                            <FretMarker />
-                          )}
-                        </>
-                      )}
-
-                      {/* Note Badge / Marker */}
-                      {revealed && isHighlighted ? (
-                        <div className="z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-success text-success-content font-black text-sm sm:text-base flex items-center justify-center shadow-lg animate-bounce-subtle ring-2 ring-success-content/40">
-                          {currentNote}
+                      {revealed && isNutHighlighted ? (
+                        <div className="z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-success text-success-content font-black text-[10px] flex items-center justify-center shadow-lg animate-bounce-subtle">
+                          {nutNote}
                         </div>
-                      ) : revealed && isTargetNoteMatch && (!highlightPositions || highlightPositions.length === 0) ? (
-                        <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-primary-content font-bold text-xs sm:text-sm flex items-center justify-center shadow-md">
-                          {currentNote}
+                      ) : revealed && isNutTargetMatch && (!highlightPositions || highlightPositions.length === 0) ? (
+                        <div className="z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary text-primary-content font-bold text-[10px] flex items-center justify-center shadow-md">
+                          {nutNote}
                         </div>
-                      ) : (
-                        <span className={isNut ? 'text-[10px] sm:text-xs font-mono font-bold opacity-0 hover:opacity-100 transition-opacity text-base-content' : 'text-[10px] sm:text-xs font-mono font-bold opacity-0 hover:opacity-100 transition-opacity text-base-content/50'}>
-                          {currentNote}
-                        </span>
-                      )}
+                      ) : null}
                     </div>
                   );
-                })}
+                })()}
+
+                {/* Numbered Fret Cells (Frets 1 to N) */}
+                <div className="flex-1 grid h-full z-10" style={{ gridTemplateColumns: `repeat(${numberedFrets.length}, minmax(32px, 1fr))` }}>
+                  {numberedFrets.map(fret => {
+                    const currentNote = getNoteAtFret(str.openNote, fret, displayMode);
+                    const isHighlighted = isPositionHighlighted(str.originalIndex, fret);
+                    const isTargetNoteMatch = targetNote && getNoteIndex(currentNote) === getNoteIndex(targetNote);
+                    const markerType = getFretMarkerType(fret);
+
+                    return (
+                      <div
+                        key={`cell-${str.originalIndex}-${fret}`}
+                        onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
+                        className="relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-base-content/30 hover:bg-base-300/40"
+                      >
+                        {/* Inlay Dots */}
+                        {markerType === 'single' && displayIdx === singleDotRow && (
+                          <FretMarker />
+                        )}
+                        {markerType === 'double' && (displayIdx === upperDotRow || displayIdx === lowerDotRow) && (
+                          <FretMarker />
+                        )}
+
+                        {/* Note Badge / Marker */}
+                        {revealed && isHighlighted ? (
+                          <div className="z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-success text-success-content font-black text-sm sm:text-base flex items-center justify-center shadow-lg animate-bounce-subtle ring-2 ring-success-content/40">
+                            {currentNote}
+                          </div>
+                        ) : revealed && isTargetNoteMatch && (!highlightPositions || highlightPositions.length === 0) ? (
+                          <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-primary-content font-bold text-xs sm:text-sm flex items-center justify-center shadow-md">
+                            {currentNote}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] sm:text-xs font-mono font-bold opacity-0 hover:opacity-100 transition-opacity text-base-content/50">
+                            {currentNote}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       </div>
 

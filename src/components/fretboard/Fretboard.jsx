@@ -76,7 +76,7 @@ export default function Fretboard({
     return () => observer.disconnect();
   }, []);
 
-  const isLightWood = ['emerald', 'nord', 'silk', 'autumn'].includes(activeTheme);
+  const isLightWood = ['emerald', 'nord', 'silk', 'autumn', 'acid'].includes(activeTheme);
 
   const woodStyle = isLightWood
     ? {

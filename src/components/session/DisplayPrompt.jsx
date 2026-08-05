@@ -56,7 +56,7 @@ export default function DisplayPrompt({
 
           {/* Massive Target Note Banner */}
           <div className="relative my-2">
-            <h1 className="text-6xl sm:text-9xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-base-content via-base-content/90 to-primary drop-shadow-md">
+            <h1 className="text-7xl sm:text-9xl font-black tracking-tight text-base-content drop-shadow-sm font-mono">
               {prompt.note}
             </h1>
           </div>

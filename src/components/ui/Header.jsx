@@ -167,40 +167,44 @@ export default function Header({
         <div className="relative" ref={themeRef}>
           <button
             onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-            className="btn btn-sm btn-outline btn-neutral flex items-center gap-1.5 font-bold"
+            className="btn btn-sm btn-ghost flex items-center gap-1.5 font-bold border border-base-300"
             title="Switch Theme Preset"
           >
             <Palette className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline capitalize">{currentTheme}</span>
-            <ChevronDown className={`w-3.5 h-3.5 opacity-70 transition-transform ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={isThemeMenuOpen ? 'w-3.5 h-3.5 opacity-70 transition-transform rotate-180' : 'w-3.5 h-3.5 opacity-70 transition-transform'} />
           </button>
 
           {isThemeMenuOpen && (
-            <div className="dropdown-content menu p-3 shadow-2xl bg-base-100 rounded-box w-56 absolute right-0 mt-2 z-50 border border-base-300 max-h-96 overflow-y-auto">
-              <div className="text-xs font-bold text-base-content/60 px-2 pb-2 mb-1 border-b border-base-200 uppercase tracking-wider font-mono">
-                Theme Presets
+            <div className="p-4 shadow-2xl bg-base-100 rounded-2xl w-[calc(100vw-2rem)] sm:w-[420px] absolute right-0 mt-2 z-50 border border-base-300 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between px-1 pb-3 mb-2 border-b border-base-200">
+                <div className="text-xs font-bold text-base-content/80 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                  <Palette className="w-4 h-4 text-primary" /> Select Theme Preset
+                </div>
+                <span className="badge badge-primary badge-sm font-mono uppercase">{currentTheme}</span>
               </div>
               {THEME_PRESETS.map((group) => (
-                <div key={group.group} className="mb-2">
-                  <div className="text-[11px] font-bold text-primary px-2 py-1 uppercase font-mono">
+                <div key={group.group} className="mb-4 last:mb-0">
+                  <div className="text-[11px] font-bold text-primary px-1 py-1 uppercase font-mono tracking-wide">
                     {group.group}
                   </div>
-                  <div className="grid grid-cols-1 gap-1">
-                    {group.themes.map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => {
-                          setCurrentTheme(t);
-                          setIsThemeMenuOpen(false);
-                        }}
-                        className={`btn btn-xs justify-start capitalize font-bold ${
-                          currentTheme === t ? 'btn-primary' : 'btn-ghost'
-                        }`}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-primary" />
-                        {t}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    {group.themes.map((t) => {
+                      const isSelected = currentTheme === t;
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => {
+                            setCurrentTheme(t);
+                            setIsThemeMenuOpen(false);
+                          }}
+                          className={isSelected ? 'btn btn-sm btn-primary justify-start capitalize font-bold font-mono text-xs w-full shadow-sm' : 'btn btn-sm btn-ghost justify-start capitalize font-bold font-mono text-xs w-full border border-base-200/80 hover:bg-base-200'}
+                        >
+                          <span className={isSelected ? 'w-2.5 h-2.5 rounded-full bg-primary-content' : 'w-2.5 h-2.5 rounded-full bg-primary'} />
+                          <span className="truncate">{t}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -232,12 +236,12 @@ export default function Header({
               <span className="max-w-[120px] truncate">
                 {user.email ? user.email.split('@')[0] : 'Account'}
               </span>
-              <ChevronDown className={`w-3.5 h-3.5 opacity-70 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={isUserMenuOpen ? 'w-3.5 h-3.5 opacity-70 transition-transform rotate-180' : 'w-3.5 h-3.5 opacity-70 transition-transform'} />
             </button>
 
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
-              <ul className="dropdown-content menu p-3 shadow-2xl bg-base-100 rounded-box w-64 absolute right-0 mt-2 z-50 border border-base-300">
+              <ul className="menu p-3 shadow-2xl bg-base-100 rounded-box w-64 absolute right-0 mt-2 z-50 border border-base-300">
                 <li className="menu-title px-2 py-1 border-b border-base-200">
                   <div className="text-xs font-bold text-base-content truncate">{user.email}</div>
                   <div className="flex items-center gap-1.5 text-[10px] font-mono text-success mt-1">

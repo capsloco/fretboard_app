@@ -4,8 +4,10 @@
 }
 
 @layer base {
-  body {
+  html, body {
     font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-base-200);
+    color: var(--color-base-content);
   }
 
   code, pre, .font-mono {

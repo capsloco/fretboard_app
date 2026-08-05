@@ -76,9 +76,9 @@ export default function SessionSettingsModal({
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {activeTab === 'session' ? (
             <>
-              {/* Section 1: Session Mode */}
+              {/* Section 1: Practice Mode Selector */}
               <div className="space-y-3">
-                <label className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+                <label className="text-xs font-mono text-base-content/70 uppercase tracking-wider">
                   Select Game / Practice Mode
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -86,14 +86,14 @@ export default function SessionSettingsModal({
                     onClick={() => onChangeConfig('sessionMode', 'tracked')}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                       config.sessionMode === 'tracked'
-                        ? 'bg-cyan-950/60 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+                        ? 'bg-base-200 border-primary shadow-lg'
+                        : 'bg-base-100 border-base-300 hover:border-base-content/40'
                     }`}
                   >
-                    <div className="font-bold text-white text-sm mb-1 flex items-center justify-between">
+                    <div className="font-bold text-base-content text-sm mb-1 flex items-center justify-between">
                       Pass / Fail Mode (Tracked)
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-base-content/70">
                       Prompt ➔ Countdown ➔ Reveal. Log results via Voice or Buttons. Tracks round accuracy %, speed & streak.
                     </p>
                   </div>
@@ -102,14 +102,14 @@ export default function SessionSettingsModal({
                     onClick={() => onChangeConfig('sessionMode', 'flashcard')}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                       config.sessionMode === 'flashcard'
-                        ? 'bg-cyan-950/60 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+                        ? 'bg-base-200 border-primary shadow-lg'
+                        : 'bg-base-100 border-base-300 hover:border-base-content/40'
                     }`}
                   >
-                    <div className="font-bold text-white text-sm mb-1">
+                    <div className="font-bold text-base-content text-sm mb-1">
                       Timed Flashcard (No Tracking)
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-base-content/70">
                       Continuous hands-free loop. Displays notes automatically based on your custom interval timer.
                     </p>
                   </div>
@@ -118,71 +118,70 @@ export default function SessionSettingsModal({
 
               {/* Flashcard Settings if Flashcard mode active */}
               {config.sessionMode === 'flashcard' && (
-                <div className="bg-cyan-950/40 border border-cyan-800/60 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs uppercase tracking-wider">
-                    <Clock className="w-4 h-4 text-cyan-400" />
+                <div className="bg-base-200 border border-base-300 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                    <Clock className="w-4 h-4" />
                     Flashcard Loop Parameters
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs font-mono text-slate-400 block mb-1">
+                      <span className="text-xs font-mono text-base-content/70 block mb-1">
                         Seconds Per Note ({config.flashcardSecondsPerNote}s)
                       </span>
                       <input
                         type="range"
-                        min="2"
+                        min="1"
                         max="10"
                         value={config.flashcardSecondsPerNote}
-                        onChange={(e) => onChangeConfig('flashcardSecondsPerNote', parseInt(e.target.value, 10))}
-                        className="w-full accent-cyan-500"
+                        onChange={(e) => onChangeConfig('flashcardSecondsPerNote', Number(e.target.value))}
+                        className="range range-primary range-xs"
                       />
                     </div>
                     <div>
-                      <span className="text-xs font-mono text-slate-400 block mb-1">
-                        Duration ({config.flashcardDurationMins} mins)
+                      <span className="text-xs font-mono text-base-content/70 block mb-1">
+                        Loop Duration ({config.flashcardDurationMins} min)
                       </span>
                       <input
                         type="range"
                         min="1"
                         max="30"
                         value={config.flashcardDurationMins}
-                        onChange={(e) => onChangeConfig('flashcardDurationMins', parseInt(e.target.value, 10))}
-                        className="w-full accent-cyan-500"
+                        onChange={(e) => onChangeConfig('flashcardDurationMins', Number(e.target.value))}
+                        className="range range-primary range-xs"
                       />
                     </div>
                   </div>
-                  {/* Stats calculation display requirement from PRD */}
-                  <div className="text-center font-mono text-xs text-cyan-300 bg-slate-950/80 py-2 rounded-xl border border-cyan-900/40">
-                    Practicing ~<span className="font-extrabold text-white">{flashcardTotalNotes} notes</span> over {config.flashcardDurationMins} minute{config.flashcardDurationMins === 1 ? '' : 's'}.
+                  <div className="text-center font-mono text-xs text-primary bg-base-100 py-2 rounded-xl border border-base-300">
+                    Est. Notes Per Session: <span className="font-bold">{flashcardTotalNotes}</span>
                   </div>
                 </div>
               )}
 
-              {/* Section 2: Prompt Type */}
+              {/* Section 2: Prompt Style */}
               <div className="space-y-3">
-                <label className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-                  Prompt Scope
+                <label className="text-xs font-mono text-base-content/70 uppercase tracking-wider">
+                  Target Note Prompt Scope
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => onChangeConfig('promptType', 'global')}
-                    className={`py-3 px-4 rounded-xl text-xs font-bold font-mono transition-all ${
+                    className={`btn btn-sm ${
                       config.promptType === 'global'
-                        ? 'bg-cyan-500 text-slate-950 shadow-md'
-                        : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-                    }`}
+                        ? 'btn-primary font-extrabold'
+                        : 'btn-neutral btn-outline'
+                    } font-mono uppercase text-xs`}
                   >
                     Global Note (e.g. "Find C")
                   </button>
                   <button
                     type="button"
                     onClick={() => onChangeConfig('promptType', 'string_specific')}
-                    className={`py-3 px-4 rounded-xl text-xs font-bold font-mono transition-all ${
+                    className={`btn btn-sm ${
                       config.promptType === 'string_specific'
-                        ? 'bg-cyan-500 text-slate-950 shadow-md'
-                        : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
-                    }`}
+                        ? 'btn-primary font-extrabold'
+                        : 'btn-neutral btn-outline'
+                    } font-mono uppercase text-xs`}
                   >
                     String Specific (e.g. "Find C on A string")
                   </button>
@@ -191,29 +190,25 @@ export default function SessionSettingsModal({
 
               {/* Section 3: Accidentals Toggle & Notation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                <div className="bg-base-200 border border-base-300 rounded-2xl p-4 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white text-xs uppercase font-mono">Include Sharps and Flats</div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="font-bold text-base-content text-xs uppercase font-mono">Include Sharps and Flats</div>
+                    <div className="text-[11px] text-base-content/70">
                       {config.includeAccidentals ? 'Sharps & Flats included' : 'Naturals Only (A-G)'}
                     </div>
                   </div>
-                  <button
-                    onClick={() => onChangeConfig('includeAccidentals', !config.includeAccidentals)}
-                    className="p-1 rounded-full text-cyan-400 transition-colors"
-                  >
-                    {config.includeAccidentals ? (
-                      <ToggleRight className="w-8 h-8 text-cyan-400" />
-                    ) : (
-                      <ToggleLeft className="w-8 h-8 text-slate-600" />
-                    )}
-                  </button>
+                  <input
+                    type="checkbox"
+                    checked={config.includeAccidentals}
+                    onChange={(e) => onChangeConfig('includeAccidentals', e.target.checked)}
+                    className="toggle toggle-primary"
+                  />
                 </div>
 
-                <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-2">
+                <div className="bg-base-200 border border-base-300 rounded-2xl p-4 flex flex-col justify-between gap-2">
                   <div>
-                    <div className="font-bold text-white text-xs uppercase font-mono">Note Display</div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="font-bold text-base-content text-xs uppercase font-mono">Note Display</div>
+                    <div className="text-[11px] text-base-content/70">
                       {(config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'flats'
                         ? 'Display Flats (♭)'
                         : (config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'both'
@@ -221,14 +216,14 @@ export default function SessionSettingsModal({
                         : 'Display Sharps (♯)'}
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                  <div className="grid grid-cols-3 gap-1 bg-base-100 p-1 rounded-xl border border-base-300">
                     <button
                       type="button"
                       onClick={() => onChangeConfig('noteDisplay', 'sharps')}
-                      className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold font-mono transition-all text-center ${
+                      className={`btn btn-xs font-mono font-bold ${
                         (config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'sharps'
-                          ? 'bg-cyan-500 text-slate-950 shadow-md'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'btn-primary'
+                          : 'btn-ghost'
                       }`}
                     >
                       # Sharps
@@ -236,10 +231,10 @@ export default function SessionSettingsModal({
                     <button
                       type="button"
                       onClick={() => onChangeConfig('noteDisplay', 'both')}
-                      className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold font-mono transition-all text-center ${
+                      className={`btn btn-xs font-mono font-bold ${
                         config.noteDisplay === 'both'
-                          ? 'bg-cyan-500 text-slate-950 shadow-md'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'btn-primary'
+                          : 'btn-ghost'
                       }`}
                     >
                       Both
@@ -247,10 +242,10 @@ export default function SessionSettingsModal({
                     <button
                       type="button"
                       onClick={() => onChangeConfig('noteDisplay', 'flats')}
-                      className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold font-mono transition-all text-center ${
+                      className={`btn btn-xs font-mono font-bold ${
                         (config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')) === 'flats'
-                          ? 'bg-cyan-500 text-slate-950 shadow-md'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'btn-primary'
+                          : 'btn-ghost'
                       }`}
                     >
                       Flats ♭
@@ -279,10 +274,10 @@ export default function SessionSettingsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center gap-3">
+        <div className="p-4 border-t border-base-200 bg-base-200 flex items-center gap-3">
           <button
             onClick={onClose}
-            className="py-3 px-5 rounded-xl font-bold text-xs uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+            className="btn btn-neutral btn-outline font-bold text-xs uppercase"
           >
             Cancel
           </button>
@@ -292,7 +287,7 @@ export default function SessionSettingsModal({
               onClose();
               if (onStartSession) onStartSession();
             }}
-            className="flex-1 py-3 px-6 rounded-xl font-extrabold text-xs uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-sky-400 hover:from-cyan-400 hover:to-sky-300 text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition-all"
+            className="btn btn-primary flex-1 font-black text-xs uppercase tracking-wider gap-2 shadow-lg"
           >
             <Play className="w-4 h-4 fill-current" /> Save & Start Practice
           </button>

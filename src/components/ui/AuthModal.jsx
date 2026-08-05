@@ -189,9 +189,9 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
         {mode === 'update_password' && (
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">New Password</label>
+              <label className="block text-xs font-mono text-base-content/70 mb-1">New Password</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
                 <input
                   type="password"
                   required
@@ -199,14 +199,14 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                  className="input input-bordered w-full pl-9 text-sm"
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-cyan-950/50"
+              className="btn btn-primary w-full font-bold"
             >
               Update Password
             </button>
@@ -217,23 +217,23 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
         {mode === 'forgot' && (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">Email Address</label>
+              <label className="block text-xs font-mono text-base-content/70 mb-1">Email Address</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                  className="input input-bordered w-full pl-9 text-sm"
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-cyan-950/50"
+              className="btn btn-primary w-full font-bold"
             >
               Send Reset Link
             </button>
@@ -241,7 +241,7 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
               <button
                 type="button"
                 onClick={() => setMode('normal')}
-                className="text-xs font-mono text-slate-400 hover:text-cyan-400 flex items-center justify-center gap-1.5 mx-auto transition-colors"
+                className="btn btn-ghost btn-xs font-mono text-base-content/70 flex items-center justify-center gap-1.5 mx-auto"
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
               </button>
@@ -255,7 +255,7 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-white font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+              className="btn btn-outline w-full flex items-center justify-center gap-3 font-bold"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -280,31 +280,31 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
 
             <div className="relative flex items-center justify-center my-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800" />
+                <div className="w-full border-t border-base-300" />
               </div>
-              <span className="relative bg-slate-900 px-3 text-[11px] font-mono text-slate-500 uppercase">
+              <span className="relative bg-base-100 px-3 text-[11px] font-mono text-base-content/60 uppercase">
                 Or use email
               </span>
             </div>
 
             {/* Tab Selector */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-base-200 rounded-xl border border-base-300 text-xs font-mono">
               <button
                 onClick={() => setActiveTab('magic')}
-                className={`py-1.5 rounded-lg font-bold transition-all ${
+                className={`btn btn-xs font-bold ${
                   activeTab === 'magic'
-                    ? 'bg-slate-800 text-cyan-400 shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'btn-primary'
+                    : 'btn-ghost'
                 }`}
               >
                 Magic Link
               </button>
               <button
                 onClick={() => setActiveTab('password')}
-                className={`py-1.5 rounded-lg font-bold transition-all ${
+                className={`btn btn-xs font-bold ${
                   activeTab === 'password'
-                    ? 'bg-slate-800 text-cyan-400 shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'btn-primary'
+                    : 'btn-ghost'
                 }`}
               >
                 Password
@@ -315,23 +315,23 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
             {activeTab === 'magic' && (
               <form onSubmit={handleMagicLink} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-400 mb-1">Email Address</label>
+                  <label className="block text-xs font-mono text-base-content/70 mb-1">Email Address</label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Mail className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                      className="input input-bordered w-full pl-9 text-sm"
                     />
                   </div>
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-cyan-950/50 flex items-center justify-center gap-2"
+                  className="btn btn-primary w-full font-bold flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Send Magic Link</span>
@@ -343,34 +343,34 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
             {activeTab === 'password' && (
               <form onSubmit={handleEmailPassword} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-400 mb-1">Email Address</label>
+                  <label className="block text-xs font-mono text-base-content/70 mb-1">Email Address</label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Mail className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                      className="input input-bordered w-full pl-9 text-sm"
                     />
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-mono text-slate-400">Password</label>
+                    <label className="block text-xs font-mono text-base-content/70">Password</label>
                     {!isSignUp && (
                       <button
                         type="button"
                         onClick={() => setMode('forgot')}
-                        className="text-[11px] font-mono text-slate-400 hover:text-cyan-400 transition-colors"
+                        className="text-[11px] font-mono text-primary hover:underline"
                       >
                         Forgot password?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
                     <input
                       type="password"
                       required
@@ -378,14 +378,14 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                      className="input input-bordered w-full pl-9 text-sm"
                     />
                   </div>
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-cyan-950/50"
+                  className="btn btn-primary w-full font-bold"
                 >
                   {isSignUp ? 'Create Account' : 'Sign In'}
                 </button>
@@ -394,7 +394,7 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
                   <button
                     type="button"
                     onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-xs font-mono text-slate-400 hover:text-cyan-400 underline transition-colors"
+                    className="text-xs font-mono text-base-content/70 hover:text-primary underline"
                   >
                     {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
                   </button>

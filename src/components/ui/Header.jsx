@@ -101,7 +101,6 @@ export default function Header({
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-base-content m-0 leading-tight">
               FretLearn
             </h1>
-            <span className="badge badge-primary badge-sm font-bold">v1.1</span>
           </div>
           <p className="text-[11px] font-mono text-base-content/70 hidden sm:block">
             Master the Fretboard

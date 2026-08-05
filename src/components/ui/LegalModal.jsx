@@ -37,13 +37,13 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800 shrink-0 text-xs font-mono">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-base-200 rounded-2xl border border-base-300 shrink-0 text-xs font-mono">
           <button
             onClick={() => setActiveTab('privacy')}
-            className={`py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`btn btn-xs font-bold flex items-center justify-center gap-2 ${
               activeTab === 'privacy'
-                ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700'
-                : 'text-slate-400 hover:text-white'
+                ? 'btn-primary'
+                : 'btn-ghost'
             }`}
           >
             <Lock className="w-4 h-4" />
@@ -51,10 +51,10 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
           </button>
           <button
             onClick={() => setActiveTab('terms')}
-            className={`py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`btn btn-xs font-bold flex items-center justify-center gap-2 ${
               activeTab === 'terms'
-                ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700'
-                : 'text-slate-400 hover:text-white'
+                ? 'btn-primary'
+                : 'btn-ghost'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -63,20 +63,20 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto space-y-6 text-sm leading-relaxed text-slate-300 pr-2 font-sans selection:bg-cyan-500 selection:text-slate-950">
+        <div className="flex-1 overflow-y-auto space-y-6 text-sm leading-relaxed text-base-content pr-2 font-sans">
           {activeTab === 'privacy' ? (
             <div className="space-y-4">
-              <div className="bg-cyan-950/40 border border-cyan-900/50 rounded-2xl p-4 text-xs font-mono text-cyan-300 space-y-1">
-                <strong className="text-white block font-bold">Privacy Summary</strong>
+              <div className="bg-base-200 border border-base-300 rounded-2xl p-4 text-xs font-mono text-base-content/80 space-y-1">
+                <strong className="text-base-content block font-bold">Privacy Summary</strong>
                 <p>
                   FretLearn respects your privacy. We collect minimal data necessary to authenticate your account and synchronize your fretboard practice settings and statistics. We do not sell or share your personal information.
                 </p>
               </div>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">1. Information We Collect</h4>
+                <h4 className="text-base font-bold text-base-content">1. Information We Collect</h4>
                 <p>When you use FretLearn, we may collect the following information:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-300 font-mono">
+                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
                   <li><strong>Account Information:</strong> Your email address and basic profile info provided via Google OAuth or Magic Link sign-in.</li>
                   <li><strong>Practice Data:</strong> Your custom instrument setups, practice round accuracy, session durations, and preference settings.</li>
                   <li><strong>Technical Data:</strong> Analytics telemetry (via Google Tag Manager) such as browser type, device type, and page usage.</li>
@@ -84,9 +84,9 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">2. How We Use Your Data</h4>
+                <h4 className="text-base font-bold text-base-content">2. How We Use Your Data</h4>
                 <p>We use collected data solely to:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-300 font-mono">
+                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
                   <li>Authenticate your account and enable cloud synchronization across devices.</li>
                   <li>Persist your custom instrument tunings, fret ranges, and practice streaks.</li>
                   <li>Analyze aggregate platform usage to improve app responsiveness and features.</li>
@@ -94,18 +94,18 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">3. Data Storage & Security</h4>
+                <h4 className="text-base font-bold text-base-content">3. Data Storage & Security</h4>
                 <p>
-                  Your data is stored securely using Supabase infrastructure with encrypted database connections and industry-standard Row Level Security (RLS) policies. Settings are also cached locally in your browser's <code className="font-mono text-cyan-400">localStorage</code> for instant zero-latency loading.
+                  Your data is stored securely using Supabase infrastructure with encrypted database connections and industry-standard Row Level Security (RLS) policies. Settings are also cached locally in your browser's <code className="font-mono text-primary">localStorage</code> for instant zero-latency loading.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">4. Third-Party Services</h4>
+                <h4 className="text-base font-bold text-base-content">4. Third-Party Services</h4>
                 <p>
                   FretLearn integrates with third-party service providers for authentication and analytics:
                 </p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-300 font-mono">
+                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
                   <li><strong>Supabase Auth & Database:</strong> User authentication and cloud data persistence.</li>
                   <li><strong>Google OAuth:</strong> Identity verification for Google Sign-In.</li>
                   <li><strong>Google Tag Manager:</strong> Anonymous usage analytics.</li>
@@ -113,7 +113,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">5. Your Data Rights & Deletion</h4>
+                <h4 className="text-base font-bold text-base-content">5. Your Data Rights & Deletion</h4>
                 <p>
                   You have the right to request access to or deletion of your account and practice data at any time. To request account deletion or data removal, please contact support or clear your local browser storage.
                 </p>
@@ -121,38 +121,38 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-cyan-950/40 border border-cyan-900/50 rounded-2xl p-4 text-xs font-mono text-cyan-300 space-y-1">
-                <strong className="text-white block font-bold">Terms Summary</strong>
+              <div className="bg-base-200 border border-base-300 rounded-2xl p-4 text-xs font-mono text-base-content/80 space-y-1">
+                <strong className="text-base-content block font-bold">Terms Summary</strong>
                 <p>
                   FretLearn is a free hands-free fretboard training application. By accessing or using the platform, you agree to these Terms of Service.
                 </p>
               </div>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">1. Acceptance of Terms</h4>
+                <h4 className="text-base font-bold text-base-content">1. Acceptance of Terms</h4>
                 <p>
                   By creating an account or using FretLearn, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, please do not use the application.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">2. Use of Service</h4>
+                <h4 className="text-base font-bold text-base-content">2. Use of Service</h4>
                 <p>
                   FretLearn grants you a personal, non-exclusive, non-transferable, revocable license to access and use the platform for educational and musical practice purposes.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">3. User Accounts</h4>
+                <h4 className="text-base font-bold text-base-content">3. User Accounts</h4>
                 <p>
                   You are responsible for maintaining the security of your account login credentials. FretLearn is not liable for unauthorized access resulting from compromised credentials.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">4. Prohibited Conduct</h4>
+                <h4 className="text-base font-bold text-base-content">4. Prohibited Conduct</h4>
                 <p>You agree not to:</p>
-                <ul className="list-disc pl-5 space-y-1 text-xs text-slate-300 font-mono">
+                <ul className="list-disc pl-5 space-y-1 text-xs text-base-content/70 font-mono">
                   <li>Attempt to gain unauthorized access to service infrastructure or other user accounts.</li>
                   <li>Use automated bots or scrapers to overwhelm service APIs.</li>
                   <li>Reverse engineer or disassemble core application logic.</li>
@@ -160,7 +160,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
               </section>
 
               <section className="space-y-2">
-                <h4 className="text-base font-bold text-white">5. Disclaimer of Warranties</h4>
+                <h4 className="text-base font-bold text-base-content">5. Disclaimer of Warranties</h4>
                 <p>
                   FretLearn is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind, express or implied. We do not guarantee uninterrupted or error-free operation.
                 </p>
@@ -170,10 +170,10 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
         </div>
 
         {/* Footer */}
-        <div className="pt-3 border-t border-slate-800 flex justify-end shrink-0">
+        <div className="pt-3 border-t border-base-200 flex justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors"
+            className="btn btn-neutral font-bold text-xs uppercase"
           >
             Close
           </button>

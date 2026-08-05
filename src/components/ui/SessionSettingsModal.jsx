@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Play, Sliders, Music, Clock, Target } from 'lucide-react';
+import { X, Play, Sliders, Music, Clock, Target, Save } from 'lucide-react';
 import InstrumentBuilder from '../settings/InstrumentBuilder';
 import FretRangeSlider from './FretRangeSlider';
 
@@ -246,8 +246,9 @@ export default function SessionSettingsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-base-200 bg-base-200 flex items-center gap-3">
+        <div className="p-4 border-t border-base-200 bg-base-200 flex flex-wrap items-center justify-end gap-3">
           <button
+            type="button"
             onClick={onClose}
             className="btn btn-ghost font-bold text-xs uppercase"
           >
@@ -255,11 +256,20 @@ export default function SessionSettingsModal({
           </button>
 
           <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-neutral font-bold text-xs uppercase gap-2"
+          >
+            <Save className="w-4 h-4" /> Save
+          </button>
+
+          <button
+            type="button"
             onClick={() => {
               onClose();
               if (onStartSession) onStartSession();
             }}
-            className="btn btn-primary flex-1 font-black text-xs uppercase tracking-wider gap-2 shadow-lg"
+            className="btn btn-primary font-black text-xs uppercase tracking-wider gap-2 shadow-lg flex-1 sm:flex-initial"
           >
             <Play className="w-4 h-4 fill-current" /> Save & Start Practice
           </button>

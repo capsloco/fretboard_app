@@ -404,23 +404,23 @@ export default function App() {
               streak={stats.currentStreak}
             />
 
-            {/* High-Visibility Action Buttons for Pass / Fail Mode (Green / Red) */}
+            {/* Action Buttons for Tracked Mode */}
             {config.sessionMode === 'tracked' && (
-              <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-1 sm:my-2">
+              <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-2">
                 <button
                   onClick={handleMiss}
-                  className="btn btn-error btn-lg font-black uppercase text-base sm:text-xl shadow-lg gap-2"
+                  className="btn btn-soft btn-error btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-md gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-all"
                 >
                   <XCircle className="w-6 h-6 stroke-[2.5]" />
-                  <span>MISSED ("Missed")</span>
+                  <span>Missed</span>
                 </button>
 
                 <button
                   onClick={handlePass}
-                  className="btn btn-success btn-lg font-black uppercase text-base sm:text-xl shadow-lg gap-2"
+                  className="btn btn-success btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-lg gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-all"
                 >
                   <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
-                  <span>GOT IT ("Got it")</span>
+                  <span>Got It</span>
                 </button>
               </div>
             )}

@@ -95,7 +95,7 @@ export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
           onClick={onOpenSettings}
           className="btn btn-ghost border border-base-300 btn-lg font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-base-content hover:bg-base-200"
         >
-          <Sliders className="w-4 h-4" /> Configure Settings
+          <Sliders className="w-4 h-4 text-primary" /> Configure Settings
         </button>
       </div>
     </div>

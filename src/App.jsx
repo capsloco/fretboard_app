@@ -350,7 +350,7 @@ export default function App() {
                     onClick={() => setIsSettingsOpen(true)}
                     className="btn btn-ghost border border-base-300 hover:bg-base-200 text-base-content btn-lg font-bold w-full sm:w-auto"
                   >
-                    <Sliders className="w-5 h-5" /> Configure
+                    <Sliders className="w-5 h-5 text-primary" /> Configure
                   </button>
                 </div>
               </div>

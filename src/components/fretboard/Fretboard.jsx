@@ -166,11 +166,7 @@ export default function Fretboard({
                           <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-primary-content font-bold text-xs sm:text-sm flex items-center justify-center shadow-md">
                             {currentNote}
                           </div>
-                        ) : (
-                          <span className="text-[10px] sm:text-xs font-mono font-bold opacity-0 hover:opacity-100 transition-opacity text-base-content/50">
-                            {currentNote}
-                          </span>
-                        )}
+                        ) : null}
                       </div>
                     );
                   })}

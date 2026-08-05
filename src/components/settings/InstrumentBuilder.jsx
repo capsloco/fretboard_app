@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   INSTRUMENT_PRESETS,
   TUNING_PRESETS,
@@ -7,7 +7,7 @@ import {
   groupTuningsByCategory,
   findMatchingTuningPreset
 } from '../../lib/fretLogic';
-import { Check, Music, Lock, Unlock, Zap } from 'lucide-react';
+import { Check, Music, Lock, Unlock, Zap, ChevronDown } from 'lucide-react';
 import { saveCustomInstrument } from '../../lib/supabase';
 
 export default function InstrumentBuilder({
@@ -23,6 +23,22 @@ export default function InstrumentBuilder({
   const [stringCount, setStringCount] = useState(6);
   const [fretCount, setFretCount] = useState(24);
   const [saving, setSaving] = useState(false);
+
+  // Dropdown states for custom UI
+  const [isTuningDropdownOpen, setIsTuningDropdownOpen] = useState(false);
+  const [openStringIdx, setOpenStringIdx] = useState(null);
+  const tuningDropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (tuningDropdownRef.current && !tuningDropdownRef.current.contains(event.target)) {
+        setIsTuningDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Available tunings for current active instrument
   const availableTuningsForCurrent = getTuningsForInstrument(
@@ -205,27 +221,66 @@ export default function InstrumentBuilder({
                 </p>
               </div>
 
-              {/* Tuning Selector Dropdown */}
-              <select
-                id="tuning-preset-selector"
-                aria-label="Select tuning preset"
-                value={activeTuningId}
-                onChange={(e) => handleSelectTuningForActive(e.target.value)}
-                className="select select-sm border border-base-300 bg-base-100 text-base-content font-mono font-bold cursor-pointer"
-              >
-                {Object.entries(groupedTuningsForCurrent).map(([category, tunings]) => (
-                  <optgroup key={category} label={category} className="bg-base-200 text-base-content font-bold">
-                    {tunings.map(t => (
-                      <option key={t.id} value={t.id} className="bg-base-100 text-base-content">
-                        {t.name} ({t.tuning.join(' ')})
-                      </option>
+              {/* Custom daisyUI Tuning Selector Dropdown */}
+              <div className="relative" ref={tuningDropdownRef}>
+                <button
+                  type="button"
+                  id="tuning-preset-selector"
+                  aria-label="Select tuning preset"
+                  onClick={() => setIsTuningDropdownOpen(!isTuningDropdownOpen)}
+                  className="btn btn-sm bg-base-100 hover:bg-base-200 border border-base-300 text-base-content font-mono font-bold flex items-center justify-between gap-2 shadow-sm min-w-[200px]"
+                >
+                  <span className="truncate">
+                    {activeTuningId === 'custom'
+                      ? '⚙️ Custom Tuning'
+                      : currentMatchingPreset
+                      ? `${currentMatchingPreset.name} (${currentMatchingPreset.tuning.join(' ')})`
+                      : 'Select Tuning'}
+                  </span>
+                  <ChevronDown className={isTuningDropdownOpen ? 'w-4 h-4 text-primary transition-transform rotate-180 shrink-0' : 'w-4 h-4 text-primary transition-transform shrink-0'} />
+                </button>
+
+                {isTuningDropdownOpen && (
+                  <div className="absolute right-0 mt-2 z-50 w-72 sm:w-80 bg-base-100 border border-base-300 rounded-2xl shadow-2xl p-2 max-h-72 overflow-y-auto space-y-3">
+                    {Object.entries(groupedTuningsForCurrent).map(([category, tunings]) => (
+                      <div key={category} className="space-y-1">
+                        <div className="text-[10px] font-bold text-primary uppercase font-mono px-2 py-1 tracking-wider bg-base-200/60 rounded-lg">
+                          {category}
+                        </div>
+                        {tunings.map((t) => {
+                          const isSelected = activeTuningId === t.id;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                handleSelectTuningForActive(t.id);
+                                setIsTuningDropdownOpen(false);
+                              }}
+                              className={isSelected ? 'btn btn-sm btn-primary justify-between w-full font-mono text-xs shadow-sm' : 'btn btn-sm btn-ghost justify-between w-full font-mono text-xs border border-base-200/80 hover:bg-base-200 text-base-content'}
+                            >
+                              <span className="font-bold truncate">{t.name}</span>
+                              <span className="text-[11px] opacity-80 shrink-0">({t.tuning.join(' ')})</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     ))}
-                  </optgroup>
-                ))}
-                <option value="custom" className="bg-base-100 text-primary font-bold">
-                  ⚙️ Custom Tuning (Manual Per-String)
-                </option>
-              </select>
+                    <div className="pt-1 border-t border-base-200">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectTuningForActive('custom');
+                          setIsTuningDropdownOpen(false);
+                        }}
+                        className={activeTuningId === 'custom' ? 'btn btn-sm btn-primary justify-start w-full font-mono text-xs shadow-sm' : 'btn btn-sm btn-ghost justify-start w-full font-mono text-xs border border-base-200/80 hover:bg-base-200 text-base-content'}
+                      >
+                        ⚙️ Custom Tuning (Manual Per-String)
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Display Active Tuning Info Card */}
@@ -282,16 +337,35 @@ export default function InstrumentBuilder({
                         Str {displayStrNum}
                       </span>
                       {activeTuningId === 'custom' ? (
-                        <select
-                          aria-label={`String ${displayStrNum} note`}
-                          value={note}
-                          onChange={(e) => handleActiveStringNoteChange(sIdx, e.target.value)}
-                          className="select select-xs select-primary border border-base-300 w-full font-mono font-bold text-center"
-                        >
-                          {CHROMATIC_SHARPS.map((n) => (
-                            <option key={n} value={n}>{n}</option>
-                          ))}
-                        </select>
+                        <div className="relative w-full">
+                          <button
+                            type="button"
+                            aria-label={`String ${displayStrNum} note selector`}
+                            onClick={() => setOpenStringIdx(openStringIdx === sIdx ? null : sIdx)}
+                            className="btn btn-xs btn-primary border border-base-300 w-full font-mono font-bold flex items-center justify-center gap-0.5 shadow-sm"
+                          >
+                            <span>{note}</span>
+                            <ChevronDown className="w-3 h-3 shrink-0" />
+                          </button>
+
+                          {openStringIdx === sIdx && (
+                            <div className="absolute left-1/2 -translate-x-1/2 mt-1 z-50 w-24 bg-base-100 border border-base-300 rounded-xl shadow-2xl p-1.5 grid grid-cols-2 gap-1 max-h-48 overflow-y-auto">
+                              {CHROMATIC_SHARPS.map((n) => (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => {
+                                    handleActiveStringNoteChange(sIdx, n);
+                                    setOpenStringIdx(null);
+                                  }}
+                                  className={note === n ? 'btn btn-xs btn-primary font-mono font-bold w-full' : 'btn btn-xs btn-ghost font-mono font-bold hover:bg-base-200 w-full text-base-content'}
+                                >
+                                  {n}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div className="w-full bg-base-100 border border-base-300 rounded-lg p-2 text-primary font-mono font-bold text-center text-sm">
                           {note}

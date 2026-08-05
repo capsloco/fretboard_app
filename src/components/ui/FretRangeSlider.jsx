@@ -10,16 +10,16 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
   ];
 
   return (
-    <div className="bg-base-200 border border-base-300 rounded-2xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <label htmlFor="min-fret-slider" className="text-xs font-mono text-base-content/70 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+    <fieldset className="fieldset bg-base-200/40 border border-base-300 rounded-box p-4 space-y-3">
+      <legend className="fieldset-legend flex items-center justify-between w-full font-mono text-xs uppercase tracking-wider text-base-content/80 font-bold">
+        <span className="flex items-center gap-1.5 cursor-pointer">
           <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
           Fret Range Boundaries
-        </label>
+        </span>
         <span className="badge badge-primary font-mono text-xs font-bold">
           Frets {minFret} – {maxFret}
         </span>
-      </div>
+      </legend>
 
       {/* Quick Boundary Preset Buttons */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -33,11 +33,7 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
                 onChangeMin(preset.min);
                 onChangeMax(preset.max);
               }}
-              className={`btn btn-xs font-mono font-bold ${
-                isActive
-                  ? 'btn-primary'
-                  : 'btn-ghost'
-              }`}
+              className={isActive ? 'btn btn-xs btn-primary font-mono font-bold' : 'btn btn-xs btn-ghost font-mono font-bold'}
             >
               {preset.label}
             </button>
@@ -48,7 +44,7 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
       {/* Dual Sliders */}
       <div className="grid grid-cols-2 gap-4 pt-1">
         <div>
-          <label htmlFor="min-fret-slider" className="text-[10px] font-mono text-base-content/70 block mb-1">
+          <label htmlFor="min-fret-slider" className="label text-[10px] font-mono text-base-content/80 block mb-1">
             Min Fret ({minFret})
           </label>
           <input
@@ -63,7 +59,7 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
           />
         </div>
         <div>
-          <label htmlFor="max-fret-slider" className="text-[10px] font-mono text-base-content/70 block mb-1">
+          <label htmlFor="max-fret-slider" className="label text-[10px] font-mono text-base-content/80 block mb-1">
             Max Fret ({maxFret})
           </label>
           <input
@@ -78,6 +74,6 @@ export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChang
           />
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 }

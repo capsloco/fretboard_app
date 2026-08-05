@@ -7,7 +7,7 @@ import {
   groupTuningsByCategory,
   findMatchingTuningPreset
 } from '../../lib/fretLogic';
-import { Check, Music, Lock, Unlock, Zap, Sliders } from 'lucide-react';
+import { Check, Music, Lock, Unlock, Zap } from 'lucide-react';
 import { saveCustomInstrument } from '../../lib/supabase';
 
 export default function InstrumentBuilder({
@@ -108,22 +108,14 @@ export default function InstrumentBuilder({
           <button
             type="button"
             onClick={() => setActiveTab('profiles')}
-            className={`btn btn-xs font-bold ${
-              activeTab === 'profiles'
-                ? 'btn-primary'
-                : 'btn-ghost'
-            }`}
+            className={activeTab === 'profiles' ? 'btn btn-xs btn-primary font-bold' : 'btn btn-xs btn-ghost font-bold'}
           >
             Base Profiles & Tunings
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('custom')}
-            className={`btn btn-xs font-bold ${
-              activeTab === 'custom'
-                ? 'btn-primary'
-                : 'btn-ghost'
-            }`}
+            className={activeTab === 'custom' ? 'btn btn-xs btn-primary font-bold' : 'btn btn-xs btn-ghost font-bold'}
           >
             + Create Custom Instrument
           </button>
@@ -133,17 +125,15 @@ export default function InstrumentBuilder({
       {activeTab === 'profiles' ? (
         <div className="space-y-6">
           {/* Step 1: Base Instrument Profile Selection */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-base-content/70 uppercase tracking-wider">
-                1. Choose Base Instrument Profile
+          <fieldset className="fieldset bg-base-200/40 border border-base-300 rounded-box p-4 space-y-3">
+            <legend className="fieldset-legend flex items-center justify-between w-full font-mono text-xs uppercase tracking-wider text-base-content/80 font-bold">
+              <span>1. Choose Base Instrument Profile</span>
+              <span className="text-primary font-bold">
+                Active: {currentInstrument?.title}
               </span>
-              <span className="text-xs font-mono text-primary font-bold">
-                Active: <strong>{currentInstrument?.title}</strong>
-              </span>
-            </div>
+            </legend>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
               {INSTRUMENT_PRESETS.map((preset) => {
                 const isSelected = currentInstrument?.id === preset.id;
                 return (
@@ -159,11 +149,7 @@ export default function InstrumentBuilder({
                         tuning: defaultTuning ? [...defaultTuning.tuning] : [...preset.tuning]
                       });
                     }}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-colors duration-200 ${
-                      isSelected
-                        ? 'bg-base-200 border-primary shadow-md'
-                        : 'bg-base-100 border-base-300 hover:border-base-content/40'
-                    }`}
+                    className={isSelected ? 'card bg-base-200 border-2 border-primary p-4 cursor-pointer transition-colors shadow-md' : 'card bg-base-100 border border-base-300 p-4 cursor-pointer transition-colors hover:border-base-content/40'}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-base-content text-sm">{preset.title}</span>
@@ -190,11 +176,7 @@ export default function InstrumentBuilder({
                       <div
                         key={inst.id}
                         onClick={() => onSelectInstrument(inst)}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-colors duration-200 ${
-                          isSelected
-                            ? 'bg-base-200 border-primary shadow-md'
-                            : 'bg-base-100 border-base-300 hover:border-base-content/40'
-                        }`}
+                        className={isSelected ? 'card bg-base-200 border-2 border-primary p-4 cursor-pointer transition-colors shadow-md' : 'card bg-base-100 border border-base-300 p-4 cursor-pointer transition-colors hover:border-base-content/40'}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-base-content text-sm">{inst.title}</span>
@@ -209,23 +191,23 @@ export default function InstrumentBuilder({
                 </div>
               </div>
             )}
-          </div>
+          </fieldset>
 
           {/* Step 2: On-The-Fly Tuning Selector & Details */}
-          <div className="p-5 bg-base-200 border border-base-300 rounded-2xl space-y-4 shadow-inner">
+          <fieldset className="fieldset bg-base-200/50 border border-base-300 rounded-box p-5 space-y-4 shadow-inner">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-base-300 pb-3">
               <div>
-                <div className="text-xs font-mono text-base-content/70 uppercase tracking-wider flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-primary" />
-                  2. Select Tuning for {currentInstrument?.title}
-                </div>
-                <div className="text-[11px] text-base-content/70 mt-0.5">
+                <legend className="fieldset-legend font-mono text-xs uppercase tracking-wider text-base-content/80 font-bold flex items-center gap-1.5 p-0">
+                  <Zap className="w-4 h-4 text-primary" /> 2. Select Tuning for {currentInstrument?.title}
+                </legend>
+                <p className="label text-[11px] text-base-content/70 p-0 mt-0.5">
                   Easily switch tuning presets or lock custom notes on the fly
-                </div>
+                </p>
               </div>
 
               {/* Tuning Selector Dropdown */}
               <select
+                id="tuning-preset-selector"
                 aria-label="Select tuning preset"
                 value={activeTuningId}
                 onChange={(e) => handleSelectTuningForActive(e.target.value)}
@@ -248,7 +230,7 @@ export default function InstrumentBuilder({
 
             {/* Display Active Tuning Info Card */}
             {currentMatchingPreset && activeTuningId !== 'custom' ? (
-              <div className="bg-base-100 border border-base-300 rounded-xl p-4 space-y-2">
+              <div className="card bg-base-100 border border-base-300 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-base-content flex items-center gap-2">
                     {currentMatchingPreset.name}
@@ -275,7 +257,7 @@ export default function InstrumentBuilder({
                 )}
               </div>
             ) : (
-              <div className="bg-warning/10 border border-warning/30 rounded-xl p-3 flex items-center justify-between text-xs font-mono text-warning">
+              <div className="badge badge-warning badge-outline w-full justify-between py-3 px-4 rounded-xl text-xs font-mono">
                 <span className="flex items-center gap-1.5 font-bold">
                   <Unlock className="w-4 h-4" /> Custom per-string tuning active
                 </span>
@@ -323,66 +305,72 @@ export default function InstrumentBuilder({
                 })}
               </div>
             </div>
-          </div>
+          </fieldset>
         </div>
       ) : (
         /* Custom Builder Form */
         <form onSubmit={handleSaveCustom} className="space-y-5">
-          <div>
-            <label htmlFor="inst-profile-title" className="block text-xs font-mono text-base-content/70 uppercase mb-1 cursor-pointer">Instrument Profile Title</label>
-            <input
-              id="inst-profile-title"
-              aria-label="Instrument profile title"
-              type="text"
-              placeholder="e.g. My 8-String Djent Rig or Studio Bass"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="input w-full text-sm"
-            />
-          </div>
+          <fieldset className="fieldset bg-base-200/40 border border-base-300 rounded-box p-4 space-y-4">
+            <legend className="fieldset-legend font-mono text-xs uppercase tracking-wider text-base-content/80 font-bold">
+              Custom Instrument Setup
+            </legend>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="custom-string-count" className="block text-xs font-mono text-base-content/70 uppercase mb-1 cursor-pointer">
-                Number of Strings ({stringCount})
-              </label>
+              <label htmlFor="inst-profile-title" className="label text-xs font-mono text-base-content/80 uppercase mb-1 cursor-pointer block">Instrument Profile Title</label>
               <input
-                id="custom-string-count"
-                aria-label="Number of strings"
-                type="range"
-                min="4"
-                max="8"
-                value={stringCount}
-                onChange={(e) => setStringCount(parseInt(e.target.value, 10))}
-                className="range range-primary range-xs"
+                id="inst-profile-title"
+                aria-label="Instrument profile title"
+                type="text"
+                placeholder="e.g. My 8-String Djent Rig or Studio Bass"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="input w-full text-sm"
               />
             </div>
-            <div>
-              <label htmlFor="custom-fret-count" className="block text-xs font-mono text-base-content/70 uppercase mb-1 cursor-pointer">
-                Number of Frets ({fretCount})
-              </label>
-              <input
-                id="custom-fret-count"
-                aria-label="Number of frets"
-                type="range"
-                min="12"
-                max="24"
-                value={fretCount}
-                onChange={(e) => setFretCount(parseInt(e.target.value, 10))}
-                className="range range-primary range-xs"
-              />
-            </div>
-          </div>
 
-          <div className="p-4 bg-base-200 border border-base-300 rounded-2xl text-xs text-base-content/70 font-mono space-y-1">
-            <div className="text-primary font-bold flex items-center gap-1.5">
-              <Zap className="w-4 h-4" /> Dynamic Tuning Management
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="custom-string-count" className="label text-xs font-mono text-base-content/80 uppercase mb-1 cursor-pointer block">
+                  Number of Strings ({stringCount})
+                </label>
+                <input
+                  id="custom-string-count"
+                  aria-label="Number of strings"
+                  type="range"
+                  min="4"
+                  max="8"
+                  value={stringCount}
+                  onChange={(e) => setStringCount(parseInt(e.target.value, 10))}
+                  className="range range-primary range-xs"
+                />
+              </div>
+              <div>
+                <label htmlFor="custom-fret-count" className="label text-xs font-mono text-base-content/80 uppercase mb-1 cursor-pointer block">
+                  Number of Frets ({fretCount})
+                </label>
+                <input
+                  id="custom-fret-count"
+                  aria-label="Number of frets"
+                  type="range"
+                  min="12"
+                  max="24"
+                  value={fretCount}
+                  onChange={(e) => setFretCount(parseInt(e.target.value, 10))}
+                  className="range range-primary range-xs"
+                />
+              </div>
             </div>
-            <p>
-              Tuning presets and custom string notes can be selected or edited anytime using the Tuning Selector once your instrument is saved!
-            </p>
-          </div>
+
+            <div className="p-4 bg-base-100 border border-base-300 rounded-2xl text-xs text-base-content/70 font-mono space-y-1">
+              <div className="text-primary font-bold flex items-center gap-1.5">
+                <Zap className="w-4 h-4" /> Dynamic Tuning Management
+              </div>
+              <p>
+                Tuning presets and custom string notes can be selected or edited anytime using the Tuning Selector once your instrument is saved!
+              </p>
+            </div>
+          </fieldset>
 
           <div className="pt-2 flex gap-3">
             <button

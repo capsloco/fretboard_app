@@ -21,7 +21,6 @@ export const supabase = isSupabaseConfigured
 
 // LocalStorage Fallback Keys
 const LOCAL_CUSTOM_INSTRUMENTS_KEY = 'fretlearn_custom_instruments';
-const LOCAL_SESSION_HISTORY_KEY = 'fretlearn_session_history';
 const LOCAL_USER_SETTINGS_KEY = 'fretlearn_user_settings';
 
 /**
@@ -163,50 +162,179 @@ export async function loadCustomInstruments(userId = null) {
 }
 
 /**
- * Practice Session History Data Methods
+ * Practice Session & Attempt Tracking Data Methods
+ * Stats/history require a signed-in account — no localStorage fallback here.
  */
 export async function savePracticeSession(sessionData, userId = null) {
-  if (supabase && userId) {
-    const { data, error } = await supabase
-      .from('practice_sessions')
-      .insert([
-        {
-          user_id: userId,
-          instrument_name: sessionData.instrumentName,
-          session_type: sessionData.sessionType,
-          prompt_type: sessionData.promptType,
-          total_prompts: sessionData.totalPrompts,
-          correct_count: sessionData.correctCount,
-          incorrect_count: sessionData.incorrectCount,
-          accuracy_pct: sessionData.accuracyPct,
-          duration_seconds: sessionData.durationSeconds
-        }
-      ]);
-    if (!error) return true;
-  }
+  if (!supabase || !userId) return null;
 
-  // LocalStorage fallback
-  try {
-    const existing = getLocalPracticeHistory();
-    const entry = {
-      id: `session_${Date.now()}`,
-      ...sessionData,
-      createdAt: new Date().toISOString()
-    };
-    const updated = [entry, ...existing];
-    localStorage.setItem(LOCAL_SESSION_HISTORY_KEY, JSON.stringify(updated));
-    return true;
-  } catch (e) {
-    console.error('Error saving session locally:', e);
-    return false;
+  const { data, error } = await supabase
+    .from('practice_sessions')
+    .insert([
+      {
+        user_id: userId,
+        instrument_name: sessionData.instrumentName,
+        session_type: sessionData.sessionType,
+        prompt_type: sessionData.promptType,
+        total_prompts: sessionData.totalPrompts,
+        correct_count: sessionData.correctCount,
+        incorrect_count: sessionData.incorrectCount,
+        accuracy_pct: sessionData.accuracyPct,
+        duration_seconds: sessionData.durationSeconds,
+        best_streak: sessionData.bestStreak,
+        instrument_id: sessionData.instrumentId,
+        tuning_id: sessionData.tuningId,
+        tuning: sessionData.tuning,
+        min_fret: sessionData.minFret,
+        max_fret: sessionData.maxFret,
+        include_accidentals: sessionData.includeAccidentals,
+        note_display: sessionData.noteDisplay
+      }
+    ])
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Error saving practice session:', error);
+    return null;
   }
+  return data.id;
 }
 
-export function getLocalPracticeHistory() {
-  try {
-    const raw = localStorage.getItem(LOCAL_SESSION_HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
+export async function savePracticeAttempts(sessionId, attempts, userId = null) {
+  if (!supabase || !userId || !sessionId || !attempts?.length) return false;
+
+  const rows = attempts.map((a) => ({
+    session_id: sessionId,
+    user_id: userId,
+    target_note: a.targetNote,
+    prompt_type: a.promptType,
+    string_index: a.stringIndex ?? null,
+    string_display_number: a.stringDisplayNumber ?? null,
+    string_open_note: a.stringOpenNote ?? null,
+    is_correct: a.isCorrect,
+    response_time_ms: a.responseTimeMs ?? null,
+    input_source: a.inputSource
+  }));
+
+  const { error } = await supabase.from('practice_attempts').insert(rows);
+  if (error) {
+    console.error('Error saving practice attempts:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function getSessionHistory(userId, { page = 0, pageSize = 20 } = {}) {
+  if (!supabase || !userId) return { sessions: [], hasMore: false };
+
+  const from = page * pageSize;
+  const to = from + pageSize; // fetch one extra row to detect hasMore without a count query
+
+  const { data, error } = await supabase
+    .from('practice_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error || !data) {
+    console.error('Error fetching session history:', error);
+    return { sessions: [], hasMore: false };
+  }
+
+  const hasMore = data.length > pageSize;
+  const rows = hasMore ? data.slice(0, pageSize) : data;
+
+  return {
+    sessions: rows.map(mapSessionRow),
+    hasMore
+  };
+}
+
+export async function getLifetimeStats(userId) {
+  const empty = { totalSessions: 0, totalPracticeSeconds: 0, lifetimeAccuracyPct: 0, bestStreak: 0, firstSessionDate: null };
+  if (!supabase || !userId) return empty;
+
+  const { data, error } = await supabase
+    .from('practice_sessions')
+    .select('total_prompts, correct_count, duration_seconds, best_streak, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error || !data || data.length === 0) return empty;
+
+  const totalPrompts = data.reduce((sum, s) => sum + (s.total_prompts || 0), 0);
+  const totalCorrect = data.reduce((sum, s) => sum + (s.correct_count || 0), 0);
+  const totalPracticeSeconds = data.reduce((sum, s) => sum + (s.duration_seconds || 0), 0);
+  const bestStreak = data.reduce((max, s) => Math.max(max, s.best_streak || 0), 0);
+
+  return {
+    totalSessions: data.length,
+    totalPracticeSeconds,
+    lifetimeAccuracyPct: totalPrompts > 0 ? Math.round((totalCorrect / totalPrompts) * 100) : 0,
+    bestStreak,
+    firstSessionDate: data[0].created_at
+  };
+}
+
+export async function getAccuracyOverTime(userId) {
+  if (!supabase || !userId) return [];
+
+  const { data, error } = await supabase
+    .from('practice_sessions')
+    .select('created_at, accuracy_pct, total_prompts, correct_count')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error || !data) {
+    console.error('Error fetching accuracy history:', error);
     return [];
   }
+
+  return data.map((s) => ({
+    createdAt: s.created_at,
+    accuracyPct: s.accuracy_pct,
+    totalPrompts: s.total_prompts,
+    correctCount: s.correct_count
+  }));
+}
+
+export async function getWeakNotes(userId) {
+  if (!supabase || !userId) return [];
+
+  const { data, error } = await supabase
+    .from('practice_attempts')
+    .select('target_note, is_correct')
+    .eq('user_id', userId);
+
+  if (error || !data) {
+    console.error('Error fetching attempt history:', error);
+    return [];
+  }
+
+  return data.map((a) => ({ note: a.target_note, isCorrect: a.is_correct }));
+}
+
+function mapSessionRow(row) {
+  return {
+    id: row.id,
+    instrumentName: row.instrument_name,
+    sessionType: row.session_type,
+    promptType: row.prompt_type,
+    totalPrompts: row.total_prompts,
+    correctCount: row.correct_count,
+    incorrectCount: row.incorrect_count,
+    accuracyPct: row.accuracy_pct,
+    durationSeconds: row.duration_seconds,
+    bestStreak: row.best_streak,
+    instrumentId: row.instrument_id,
+    tuningId: row.tuning_id,
+    tuning: row.tuning,
+    minFret: row.min_fret,
+    maxFret: row.max_fret,
+    includeAccidentals: row.include_accidentals,
+    noteDisplay: row.note_display,
+    createdAt: row.created_at
+  };
 }

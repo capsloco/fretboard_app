@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Palette } from 'lucide-react';
+import { Guitar, Sliders, LogIn, LogOut, User as UserIcon, ChevronDown, ChevronUp, CheckCircle2, Palette, BarChart3 } from 'lucide-react';
 import { signInWithGoogle, signOut } from '../../lib/supabase';
 
 const THEME_PRESETS = [
@@ -11,6 +11,7 @@ const THEME_PRESETS = [
 export default function Header({
   onOpenSettings,
   onOpenAuth,
+  onOpenHistory,
   user,
   setUser,
   isSessionRunning = false
@@ -153,6 +154,17 @@ export default function Header({
             </div>
           )}
         </div>
+
+        {/* History & Stats Button */}
+        {!isSessionRunning && onOpenHistory && (
+          <button
+            onClick={onOpenHistory}
+            className="btn btn-sm bg-base-200 hover:bg-base-300 border border-base-300 text-base-content font-bold flex items-center gap-1.5 shadow-sm"
+          >
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline">Stats</span>
+          </button>
+        )}
 
         {/* Settings Modal Button */}
         <button

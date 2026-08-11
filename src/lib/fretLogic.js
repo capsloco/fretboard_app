@@ -393,7 +393,7 @@ export function generatePrompt({
     note: selectedNote,
     promptType: 'global',
     validPositions: validPositions,
-    promptText: `Find all ${selectedNote} notes`,
+    promptText: `Find a ${selectedNote} note`,
     subText: `${validPositions.length} position${validPositions.length === 1 ? '' : 's'} between Frets ${minFret}–${maxFret}`
   };
 }

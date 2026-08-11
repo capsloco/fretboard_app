@@ -47,12 +47,12 @@ export default function VoiceController({ onCommand }) {
       if (e.code === 'Space' || e.key === 'Enter') {
         e.preventDefault();
         setLastHeard('Keyboard [Space/Enter]');
-        onCommand({ type: 'PASS', transcript: 'Keyboard' });
+        onCommand({ type: 'PASS', transcript: 'Keyboard', source: 'keyboard' });
         setTimeout(() => setLastHeard(null), 2000);
       } else if (e.code === 'KeyM' || e.key === 'Backspace') {
         e.preventDefault();
         setLastHeard('Keyboard [Missed]');
-        onCommand({ type: 'MISS', transcript: 'Keyboard' });
+        onCommand({ type: 'MISS', transcript: 'Keyboard', source: 'keyboard' });
         setTimeout(() => setLastHeard(null), 2000);
       }
     };
@@ -92,7 +92,7 @@ export default function VoiceController({ onCommand }) {
       threshold: sensitivity,
       onPeak: (vol) => {
         setLastHeard(`Guitar Pluck / Snap (Vol: ${vol})`);
-        onCommand({ type: 'PASS', transcript: 'Sound Peak' });
+        onCommand({ type: 'PASS', transcript: 'Sound Peak', source: 'pluck' });
         setTimeout(() => setLastHeard(null), 2000);
       }
     });
@@ -158,7 +158,7 @@ export default function VoiceController({ onCommand }) {
       {!speechSupported && (
         <div className="alert alert-info py-1.5 px-3 text-xs font-mono max-w-md">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>Firefox detected: Use <strong>Pluck Trigger</strong> or <strong>Spacebar</strong> for hands-free practice!</span>
+          <span>Voice recognition isn't supported in this browser: Use <strong>Pluck Trigger</strong> or <strong>Spacebar</strong> for hands-free practice!</span>
         </div>
       )}
 

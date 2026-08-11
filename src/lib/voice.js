@@ -74,13 +74,13 @@ export class VoiceControllerHandler {
     const resumePhrases = ['resume', 'start', 'continue'];
 
     if (passPhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'PASS', transcript });
+      if (this.onCommand) this.onCommand({ type: 'PASS', transcript, source: 'voice' });
     } else if (missPhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'MISS', transcript });
+      if (this.onCommand) this.onCommand({ type: 'MISS', transcript, source: 'voice' });
     } else if (pausePhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'PAUSE', transcript });
+      if (this.onCommand) this.onCommand({ type: 'PAUSE', transcript, source: 'voice' });
     } else if (resumePhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'RESUME', transcript });
+      if (this.onCommand) this.onCommand({ type: 'RESUME', transcript, source: 'voice' });
     }
   }
 

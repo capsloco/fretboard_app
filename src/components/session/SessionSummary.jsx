@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trophy, CheckCircle, XCircle, Clock, Zap, RotateCcw, Sliders, Award } from 'lucide-react';
+import { formatDuration } from '../../lib/formatters';
 
 export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
   const {
@@ -12,13 +13,6 @@ export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
     instrumentTitle = '',
     sessionType = 'tracked'
   } = stats || {};
-
-  const formatDuration = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    if (m === 0) return `${s}s`;
-    return `${m}m ${s}s`;
-  };
 
   return (
     <div className="card bg-base-100 border border-base-300 shadow-2xl w-full max-w-xl mx-auto p-6 sm:p-8 text-center space-y-6 animate-fade-in">

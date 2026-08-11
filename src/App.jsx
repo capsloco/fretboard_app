@@ -8,8 +8,9 @@ import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import AuthModal from './components/ui/AuthModal';
 import LegalModal from './components/ui/LegalModal';
 import CookieConsentBanner from './components/ui/CookieConsentBanner';
+import HistoryStatsScreen from './components/history/HistoryStatsScreen';
 import { generatePrompt, INSTRUMENT_PRESETS, TUNING_PRESETS } from './lib/fretLogic';
-import { loadCustomInstruments, savePracticeSession, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
+import { loadCustomInstruments, savePracticeSession, savePracticeAttempts, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -40,7 +41,7 @@ export default function App() {
   });
 
   // Active Session State
-  const [sessionState, setSessionState] = useState('idle'); // 'idle' | 'running' | 'summary'
+  const [sessionState, setSessionState] = useState('idle'); // 'idle' | 'running' | 'summary' | 'history'
   const [currentPrompt, setCurrentPrompt] = useState(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [voiceListening, setVoiceListening] = useState(false);
@@ -57,6 +58,10 @@ export default function App() {
     currentStreak: 0,
     bestStreak: 0
   });
+
+  // Per-attempt records for the currently running session (persisted at finishSession)
+  const [attempts, setAttempts] = useState([]);
+  const promptShownAtRef = useRef(null);
 
   const timerRef = useRef(null);
 
@@ -171,9 +176,10 @@ export default function App() {
       currentStreak: 0,
       bestStreak: 0
     });
+    setAttempts([]);
     setSessionStartTime(Date.now());
     setIsRevealed(false);
-    
+
     // Generate initial prompt synchronously
     const firstPrompt = generatePrompt({
       promptType: config.promptType,
@@ -184,6 +190,7 @@ export default function App() {
       noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')
     });
     setCurrentPrompt(firstPrompt);
+    promptShownAtRef.current = Date.now();
 
     if (config.sessionMode === 'flashcard') {
       setTimeLeft(config.flashcardSecondsPerNote);
@@ -208,6 +215,7 @@ export default function App() {
     });
 
     setCurrentPrompt(newPrompt);
+    promptShownAtRef.current = Date.now();
 
     // Setup timer if flashcard mode
     if (config.sessionMode === 'flashcard') {
@@ -239,8 +247,24 @@ export default function App() {
     };
   }, [sessionState, config.sessionMode, config.flashcardSecondsPerNote, currentPrompt]);
 
+  // Record a per-prompt attempt (must run before currentPrompt is replaced by nextPrompt())
+  const recordAttempt = (isCorrect, source) => {
+    const responseTimeMs = promptShownAtRef.current ? Date.now() - promptShownAtRef.current : null;
+    setAttempts(prev => [...prev, {
+      targetNote: currentPrompt?.note,
+      promptType: currentPrompt?.promptType,
+      stringIndex: currentPrompt?.stringIndex ?? null,
+      stringDisplayNumber: currentPrompt?.stringDisplayNumber ?? null,
+      stringOpenNote: currentPrompt?.stringOpenNote ?? null,
+      isCorrect,
+      responseTimeMs,
+      inputSource: source
+    }]);
+  };
+
   // Handle Pass / Correct action
-  const handlePass = () => {
+  const handlePass = (source = 'button') => {
+    recordAttempt(true, source);
     setStats(prev => {
       const newCorrect = prev.correctCount + 1;
       const newTotal = prev.totalPrompts + 1;
@@ -258,7 +282,8 @@ export default function App() {
   };
 
   // Handle Miss / Incorrect action
-  const handleMiss = () => {
+  const handleMiss = (source = 'button') => {
+    recordAttempt(false, source);
     setStats(prev => {
       const newIncorrect = prev.incorrectCount + 1;
       const newTotal = prev.totalPrompts + 1;
@@ -276,9 +301,9 @@ export default function App() {
   const handleVoiceCommand = (cmd) => {
     if (sessionState !== 'running') return;
     if (cmd.type === 'PASS') {
-      handlePass();
+      handlePass(cmd.source || 'voice');
     } else if (cmd.type === 'MISS') {
-      handleMiss();
+      handleMiss(cmd.source || 'voice');
     }
   };
 
@@ -296,8 +321,10 @@ export default function App() {
 
     setSessionState('summary');
 
-    // Save session stats to DB / LocalStorage
-    await savePracticeSession({
+    // Flashcard mode is explicitly "no tracking" — don't persist a session/attempts row
+    if (config.sessionMode !== 'tracked') return;
+
+    const sessionId = await savePracticeSession({
       instrumentName: currentInstrument.title,
       sessionType: config.sessionMode,
       promptType: config.promptType,
@@ -305,8 +332,20 @@ export default function App() {
       correctCount: stats.correctCount,
       incorrectCount: stats.incorrectCount,
       accuracyPct: accuracy,
-      durationSeconds: durationSecs
+      durationSeconds: durationSecs,
+      bestStreak: stats.bestStreak,
+      instrumentId: currentInstrument.id,
+      tuningId: currentInstrument.tuningId || currentInstrument.defaultTuningId,
+      tuning: currentInstrument.tuning,
+      minFret: config.minFret,
+      maxFret: config.maxFret,
+      includeAccidentals: config.includeAccidentals,
+      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')
     }, user?.id);
+
+    if (sessionId && attempts.length > 0) {
+      await savePracticeAttempts(sessionId, attempts, user?.id);
+    }
   };
 
   return (
@@ -316,6 +355,7 @@ export default function App() {
         currentInstrument={currentInstrument}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenHistory={() => setSessionState('history')}
         user={user}
         setUser={setUser}
         onSelectTuning={handleTuningSelect}
@@ -376,6 +416,13 @@ export default function App() {
               }}
             />
           </div>
+        ) : sessionState === 'history' ? (
+          /* HISTORY & STATS SCREEN */
+          <HistoryStatsScreen
+            user={user}
+            onBack={() => setSessionState('idle')}
+            onOpenAuth={() => setIsAuthOpen(true)}
+          />
         ) : (
           /* ACTIVE PRACTICE SESSION SCREEN */
           <div className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 py-1">
@@ -410,7 +457,7 @@ export default function App() {
             {config.sessionMode === 'tracked' && (
               <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-2">
                 <button
-                  onClick={handleMiss}
+                  onClick={() => handleMiss('button')}
                   className="btn btn-soft btn-error btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-md gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-transform"
                 >
                   <XCircle className="w-6 h-6 stroke-[2.5]" />
@@ -418,7 +465,7 @@ export default function App() {
                 </button>
 
                 <button
-                  onClick={handlePass}
+                  onClick={() => handlePass('button')}
                   className="btn btn-success btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-lg gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-transform"
                 >
                   <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />

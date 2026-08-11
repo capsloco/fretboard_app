@@ -11,7 +11,7 @@ export default function WeakNotesBreakdown({ notes }) {
       </div>
 
       {!notes || notes.length === 0 ? (
-        <div className="h-40 flex items-center justify-center text-base-content/60 text-sm font-mono text-center px-4">
+        <div className="h-40 flex items-center justify-center text-base-content/90 text-sm font-mono text-center px-4">
           Complete a tracked session to see your weak notes
         </div>
       ) : (

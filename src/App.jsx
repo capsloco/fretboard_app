@@ -28,6 +28,14 @@ export default function App() {
   const [legalTab, setLegalTab] = useState('privacy');
   const [isCookieConsentOpen, setIsCookieConsentOpen] = useState(false);
 
+  // Appearance / Theme State
+  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fretlearn_theme') || 'emerald');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('fretlearn_theme', currentTheme);
+  }, [currentTheme]);
+
   // Session Parameters State
   const [config, setConfig] = useState({
     sessionMode: 'tracked', // 'tracked' | 'flashcard'
@@ -538,6 +546,8 @@ export default function App() {
           setUserCustomInstruments(prev => [savedInst, ...prev]);
         }}
         onStartSession={startNewSession}
+        currentTheme={currentTheme}
+        onChangeTheme={setCurrentTheme}
       />
 
       {/* Auth Modal */}

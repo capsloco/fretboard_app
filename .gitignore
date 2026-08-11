@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .vercel
 .env
+
+# Local planning/audit docs — not part of the app, not for the repo
+/audit/

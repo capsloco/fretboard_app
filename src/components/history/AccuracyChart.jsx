@@ -33,7 +33,7 @@ export default function AccuracyChart({ sessions }) {
       </div>
 
       {data.length === 0 ? (
-        <div className="h-56 flex items-center justify-center text-base-content/60 text-sm font-mono">
+        <div className="h-56 flex items-center justify-center text-base-content/90 text-sm font-mono">
           No sessions in this range yet
         </div>
       ) : (
@@ -51,13 +51,13 @@ export default function AccuracyChart({ sessions }) {
                 dataKey="date"
                 tickFormatter={(d) => formatDate(d)}
                 tick={{ fontSize: 11 }}
-                className="fill-base-content/60"
+                className="fill-base-content/90"
                 minTickGap={30}
               />
               <YAxis
                 domain={[0, 100]}
                 tick={{ fontSize: 11 }}
-                className="fill-base-content/60"
+                className="fill-base-content/90"
                 width={36}
               />
               <Tooltip

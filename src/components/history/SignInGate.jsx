@@ -13,7 +13,7 @@ export default function SignInGate({ onOpenAuth, onBack }) {
           <h2 className="text-2xl sm:text-3xl font-black text-base-content mb-3">
             Sign In to Track Your Progress
           </h2>
-          <p className="text-base-content/70 max-w-sm text-sm sm:text-base font-medium mb-8">
+          <p className="text-base-content/90 max-w-sm text-sm sm:text-base font-medium mb-8">
             Session history, accuracy trends, and note-by-note breakdowns are saved to your account so you can track progress over time.
           </p>
 

@@ -11,7 +11,7 @@ export default function SessionHistoryList({ sessions, hasMore, onLoadMore, load
       </div>
 
       {sessions.length === 0 ? (
-        <div className="h-24 flex items-center justify-center text-base-content/60 text-sm font-mono">
+        <div className="h-24 flex items-center justify-center text-base-content/90 text-sm font-mono">
           No sessions yet — start a tracked practice round!
         </div>
       ) : (
@@ -25,14 +25,14 @@ export default function SessionHistoryList({ sessions, hasMore, onLoadMore, load
                 <Guitar className="w-4 h-4 text-primary shrink-0" />
                 <div className="min-w-0">
                   <div className="font-bold text-base-content truncate">{s.instrumentName}</div>
-                  <div className="text-xs text-base-content/60 font-mono">
+                  <div className="text-xs text-base-content/90 font-mono">
                     {formatDate(s.createdAt)} • {s.promptType === 'string_specific' ? 'String-Specific' : 'Global'}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 shrink-0">
-                <div className="flex items-center gap-1 text-base-content/70 text-xs font-mono">
+                <div className="flex items-center gap-1 text-base-content/90 text-xs font-mono">
                   <Clock className="w-3.5 h-3.5" />
                   {formatDuration(s.durationSeconds)}
                 </div>

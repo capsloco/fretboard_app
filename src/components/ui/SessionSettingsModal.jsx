@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Play, Sliders, Music, Clock, Target, Save } from 'lucide-react';
+import { X, Play, Sliders, Music, Clock, Target, Save, Palette } from 'lucide-react';
 import InstrumentBuilder from '../settings/InstrumentBuilder';
 import FretRangeSlider from './FretRangeSlider';
+
+const THEME_PRESETS = [
+  { group: '☀️ Clean & Light', themes: ['emerald', 'nord', 'silk', 'autumn'] },
+  { group: '🌙 Dark & Night', themes: ['dim', 'night', 'sunset', 'dracula', 'abyss'] },
+  { group: '⚡ Vibrant & Neon', themes: ['synthwave', 'acid'] }
+];
 
 export default function SessionSettingsModal({
   isOpen,
@@ -13,9 +19,12 @@ export default function SessionSettingsModal({
   onSelectInstrument,
   userCustomInstruments,
   onInstrumentSaved,
-  onStartSession
+  onStartSession,
+  currentTheme,
+  onChangeTheme
 }) {
-  const [activeTab, setActiveTab] = useState('session'); // 'session' | 'instrument'
+  const [activeTab, setActiveTab] = useState('session'); // 'session' | 'instrument' | 'appearance'
+  const [isThemeExpanded, setIsThemeExpanded] = useState(false);
 
   if (!isOpen) return null;
 
@@ -64,6 +73,13 @@ export default function SessionSettingsModal({
             className={activeTab === 'instrument' ? 'tab tab-active font-bold text-xs uppercase tracking-wider gap-2 text-primary' : 'tab font-bold text-xs uppercase tracking-wider text-base-content/70 gap-2'}
           >
             <Music className="w-4 h-4" /> Instrument Setup
+          </button>
+          <button
+            role="tab"
+            onClick={() => setActiveTab('appearance')}
+            className={activeTab === 'appearance' ? 'tab tab-active font-bold text-xs uppercase tracking-wider gap-2 text-primary' : 'tab font-bold text-xs uppercase tracking-wider text-base-content/70 gap-2'}
+          >
+            <Palette className="w-4 h-4" /> Appearance
           </button>
         </div>
 
@@ -235,13 +251,51 @@ export default function SessionSettingsModal({
                 maxInstrumentFrets={currentInstrument?.fretCount || 24}
               />
             </>
-          ) : (
+          ) : activeTab === 'instrument' ? (
             <InstrumentBuilder
               currentInstrument={currentInstrument}
               onSelectInstrument={onSelectInstrument}
               userCustomInstruments={userCustomInstruments}
               onInstrumentSaved={onInstrumentSaved}
             />
+          ) : (
+            <div className="collapse collapse-arrow bg-base-200/40 border border-base-300 rounded-box">
+              <input
+                type="checkbox"
+                checked={isThemeExpanded}
+                onChange={(e) => setIsThemeExpanded(e.target.checked)}
+                aria-label={isThemeExpanded ? 'Collapse theme picker' : 'Expand theme picker'}
+              />
+              <div className="collapse-title font-mono text-xs uppercase tracking-wider text-base-content/90 font-bold flex items-center gap-1.5">
+                <Palette className="w-4 h-4 text-primary" /> Theme —
+                <span className="badge badge-primary badge-sm font-mono uppercase">{currentTheme}</span>
+              </div>
+              <div className="collapse-content">
+                {THEME_PRESETS.map((group) => (
+                  <div key={group.group} className="mb-4 last:mb-0">
+                    <div className="text-[11px] font-bold text-primary px-1 py-1 uppercase font-mono tracking-wide">
+                      {group.group}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                      {group.themes.map((t) => {
+                        const isSelected = currentTheme === t;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => onChangeTheme(t)}
+                            className={isSelected ? 'btn btn-sm btn-primary justify-start capitalize font-bold font-mono text-xs w-full shadow-sm' : 'btn btn-sm btn-ghost justify-start capitalize font-bold font-mono text-xs w-full border border-base-200/80 hover:bg-base-200'}
+                          >
+                            <span className={isSelected ? 'w-2.5 h-2.5 rounded-full bg-primary-content' : 'w-2.5 h-2.5 rounded-full bg-primary'} />
+                            <span className="truncate">{t}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 

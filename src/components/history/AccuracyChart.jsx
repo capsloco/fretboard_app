@@ -16,10 +16,13 @@ export default function AccuracyChart({ sessions }) {
           <TrendingUp className="w-4 h-4 text-primary" />
           Accuracy Over Time
         </div>
-        <div className="tabs tabs-boxed tabs-sm bg-base-200 w-fit">
+        <div role="tablist" className="tabs tabs-box tabs-sm bg-base-200 w-fit">
           {ACCURACY_RANGES.map((r) => (
             <button
               key={r.key}
+              role="tab"
+              aria-label={r.label}
+              aria-selected={rangeKey === r.key}
               className={rangeKey === r.key ? 'tab tab-active font-bold' : 'tab font-bold'}
               onClick={() => setRangeKey(r.key)}
             >

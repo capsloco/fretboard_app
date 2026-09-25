@@ -1,8 +1,20 @@
 import React from 'react';
-import { Trophy, CheckCircle, XCircle, Clock, Zap, RotateCcw, Sliders, Award } from 'lucide-react';
+import { RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { formatDuration } from '../../lib/formatters';
 
-export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
+/** Missed notes for this round, most-missed first, with what the mic heard instead */
+function summarizeMisses(attempts) {
+  const byNote = new Map();
+  attempts.filter(a => !a.isCorrect).forEach((a) => {
+    const entry = byNote.get(a.targetNote) ?? { note: a.targetNote, misses: 0, heard: new Set() };
+    entry.misses += 1;
+    if (a.detectedNote) entry.heard.add(`${a.detectedNote}${a.detectedOctave}`);
+    byNote.set(a.targetNote, entry);
+  });
+  return [...byNote.values()].sort((a, b) => b.misses - a.misses);
+}
+
+export default function SessionSummary({ stats, attempts = [], onRestart, onOpenSettings }) {
   const {
     totalPrompts = 0,
     correctCount = 0,
@@ -14,84 +26,86 @@ export default function SessionSummary({ stats, onRestart, onOpenSettings }) {
     sessionType = 'tracked'
   } = stats || {};
 
+  const misses = summarizeMisses(attempts);
+  const verdict = totalPrompts === 0
+    ? 'No notes answered this round.'
+    : accuracyPct >= 90
+      ? 'Stage ready.'
+      : accuracyPct >= 70
+        ? 'Getting there. Keep the streak going.'
+        : 'Slow down and say each note out loud as you find it.';
+
   return (
-    <div className="card bg-base-100 border border-base-300 shadow-2xl w-full max-w-xl mx-auto p-6 sm:p-8 text-center space-y-6 animate-fade-in">
-      {/* Header Badge */}
-      <div className="badge badge-primary badge-lg gap-2 font-mono text-xs uppercase tracking-widest mx-auto">
-        <Trophy className="w-4 h-4" />
-        Session Complete
-      </div>
+    <section className="card bg-base-100 shadow-lg w-full max-w-2xl mx-auto p-2">
+      <div className="rounded-[calc(var(--radius-box)-0.25rem)] border-4 border-double border-base-300 p-5 sm:p-8 flex flex-col items-center text-center gap-6">
+        <header>
+          <p className="font-display uppercase tracking-[0.25em] text-xs sm:text-sm opacity-70">
+            {instrumentTitle} · {sessionType === 'tracked' ? 'Pass / fail' : 'Flashcards'}
+          </p>
+          <h2 className="font-display font-extrabold uppercase tracking-wide text-4xl sm:text-5xl mt-1">Round complete</h2>
+        </header>
 
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-base-content">
-        Practice Summary
-      </h2>
-      <p className="text-base-content/70 text-sm font-mono">
-        {instrumentTitle} • {sessionType === 'tracked' ? 'Tracked Round' : 'Timed Flashcard'}
-      </p>
-
-      {/* Main Score Wheel / Accuracy Badge */}
-      <div className="py-4 flex flex-col items-center justify-center">
-        <div className="relative w-40 h-40 rounded-full bg-base-200 border-4 border-primary shadow-xl flex flex-col items-center justify-center">
-          <span className="text-4xl sm:text-5xl font-black text-primary font-mono">
-            {accuracyPct}%
+        <div
+          className="radial-progress text-primary bg-base-200 border-4 border-base-200"
+          style={{ '--value': accuracyPct, '--size': '10rem', '--thickness': '0.75rem' }}
+          role="progressbar"
+          aria-valuenow={accuracyPct}
+          aria-label="Accuracy"
+        >
+          <span className="flex flex-col items-center text-base-content">
+            <span className="font-display font-extrabold text-5xl tabular-nums leading-none">{accuracyPct}%</span>
+            <span className="font-display uppercase tracking-widest text-xs opacity-70 mt-1">Accuracy</span>
           </span>
-          <span className="text-xs font-mono text-base-content/70 uppercase tracking-widest mt-1">Accuracy</span>
+        </div>
+        <p className="font-script text-2xl sm:text-3xl text-secondary -mt-2">{verdict}</p>
+
+        <div className="stats stats-vertical sm:stats-horizontal w-full bg-base-200 shadow-none">
+          <div className="stat place-items-center">
+            <div className="stat-title font-display uppercase tracking-wider">Correct</div>
+            <div className="stat-value font-display text-success tabular-nums">{correctCount}</div>
+          </div>
+          <div className="stat place-items-center">
+            <div className="stat-title font-display uppercase tracking-wider">Missed</div>
+            <div className="stat-value font-display text-error tabular-nums">{incorrectCount}</div>
+          </div>
+          <div className="stat place-items-center">
+            <div className="stat-title font-display uppercase tracking-wider">Best streak</div>
+            <div className="stat-value font-display tabular-nums">{bestStreak}</div>
+          </div>
+          <div className="stat place-items-center">
+            <div className="stat-title font-display uppercase tracking-wider">Time</div>
+            <div className="stat-value font-display tabular-nums text-3xl">{formatDuration(durationSeconds)}</div>
+          </div>
+        </div>
+
+        {misses.length > 0 && (
+          <div className="w-full text-left">
+            <h3 className="font-display font-bold uppercase tracking-[0.2em] text-sm mb-2">Notes to work on</h3>
+            <ul className="divide-y divide-base-300 border-y border-base-300">
+              {misses.map(({ note, misses: count, heard }) => (
+                <li key={note} className="flex items-center gap-4 py-2">
+                  <span className="font-display font-extrabold text-3xl w-16">{note}</span>
+                  <span className="flex-1 text-sm opacity-80">
+                    {heard.size > 0 ? `Heard ${[...heard].join(', ')}` : 'Marked missed'}
+                  </span>
+                  <span className="badge badge-error badge-soft font-display tabular-nums">
+                    {count} miss{count === 1 ? '' : 'es'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <button type="button" onClick={onRestart} className="btn btn-primary btn-lg flex-1 font-display uppercase tracking-widest">
+            <RotateCcw className="size-5" /> Play again
+          </button>
+          <button type="button" onClick={onOpenSettings} className="btn btn-lg font-display uppercase tracking-widest">
+            <SlidersHorizontal className="size-5" /> Settings
+          </button>
         </div>
       </div>
-
-      {/* Grid Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-base-200 border border-base-300 rounded-2xl p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-base-content/70 text-xs font-mono mb-1">
-            <Award className="w-3.5 h-3.5 text-primary" /> Prompts
-          </div>
-          <div className="text-xl font-bold text-base-content font-mono">{totalPrompts}</div>
-        </div>
-
-        <div className="bg-base-200 border border-success/30 rounded-2xl p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-success text-xs font-mono mb-1">
-            <CheckCircle className="w-3.5 h-3.5" /> Correct
-          </div>
-          <div className="text-xl font-bold text-success font-mono">{correctCount}</div>
-        </div>
-
-        <div className="bg-base-200 border border-error/30 rounded-2xl p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-error text-xs font-mono mb-1">
-            <XCircle className="w-3.5 h-3.5" /> Missed
-          </div>
-          <div className="text-xl font-bold text-error font-mono">{incorrectCount}</div>
-        </div>
-
-        <div className="bg-base-200 border border-warning/30 rounded-2xl p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-warning text-xs font-mono mb-1">
-            <Zap className="w-3.5 h-3.5" /> Streak
-          </div>
-          <div className="text-xl font-bold text-warning font-mono">{bestStreak} 🔥</div>
-        </div>
-      </div>
-
-      {/* Practice Duration */}
-      <div className="flex items-center justify-center gap-2 text-base-content/70 text-sm font-mono bg-base-200 py-2.5 rounded-xl border border-base-300">
-        <Clock className="w-4 h-4 text-primary" />
-        Total Time Practiced: <span className="text-base-content font-semibold">{formatDuration(durationSeconds)}</span>
-      </div>
-
-      {/* Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <button
-          onClick={onRestart}
-          className="btn btn-primary btn-lg flex-1 font-black uppercase tracking-wider gap-2 shadow-lg"
-        >
-          <RotateCcw className="w-4 h-4" /> Start Next Round
-        </button>
-
-        <button
-          onClick={onOpenSettings}
-          className="btn btn-ghost border border-base-300 btn-lg font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-base-content hover:bg-base-200"
-        >
-          <Sliders className="w-4 h-4 text-primary" /> Configure Settings
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }

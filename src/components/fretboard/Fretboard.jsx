@@ -1,6 +1,36 @@
 import React from 'react';
-import FretMarker, { getFretMarkerType } from './FretMarker';
-import { getNoteAtFret, getNoteIndex } from '../../lib/fretLogic';
+import { getNoteAtFret, getStringMidis, getFretMarkerType } from '../../lib/fretLogic';
+
+const LABEL_REM = 3;
+const NUT_REM = 0.875;
+const MIN_FRET_REM = 2.4;
+
+// Frets narrow as they climb the neck (softened so high frets stay readable)
+const fretScale = (fret, startFret) => 2 ** (-(fret - startFret) / 36);
+
+// Thicker for lower pitches: high E ≈ 1px, low E ≈ 3.2px, bass low B ≈ 4.7px
+const stringThickness = (midi) => Math.min(5.5, Math.max(1, 1 + (64 - midi) * 0.09));
+
+function NoteDot({ note }) {
+  return (
+    <span className="relative z-20 shrink-0 flex items-center justify-center size-7 sm:size-8 rounded-full bg-primary text-primary-content font-display font-bold text-sm sm:text-base shadow-md ring-2 ring-base-100/70">
+      {note}
+    </span>
+  );
+}
+
+function Inlays({ type, stringCount }) {
+  if (!type) return null;
+  const dot = 'absolute left-1/2 -translate-x-1/2 -translate-y-1/2 size-2.5 sm:size-3 rounded-full bg-(--inlay) shadow-inner';
+  if (type === 'single') return <span className={dot} style={{ top: '50%' }} />;
+  const gap = Math.max(1, Math.floor(stringCount / 3)) / stringCount;
+  return (
+    <>
+      <span className={dot} style={{ top: `${gap * 100}%` }} />
+      <span className={dot} style={{ top: `${(1 - gap) * 100}%` }} />
+    </>
+  );
+}
 
 export default function Fretboard({
   instrument,
@@ -8,231 +38,97 @@ export default function Fretboard({
   revealed = false,
   minFret = 0,
   maxFret = 12,
-  noteDisplay = 'sharps',
-  useFlats,
-  targetNote = null,
-  onCellClick = null
+  noteDisplay = 'sharps'
 }) {
-  if (!instrument || !instrument.tuning || !Array.isArray(instrument.tuning)) {
-    return null;
-  }
+  if (!instrument?.tuning?.length) return null;
 
-  const displayMode = noteDisplay || (useFlats ? 'flats' : 'sharps');
-  const fretCount = Math.min(instrument.fretCount || 24, maxFret);
+  const lastFret = Math.min(instrument.fretCount || 24, maxFret);
   const startFret = Math.max(0, minFret);
-  
-  // Create list of frets to display
-  const fretsToDisplay = [];
-  for (let f = startFret; f <= fretCount; f++) {
-    fretsToDisplay.push(f);
-  }
-
-  // Reverse tuning so String 1 (highest pitch, e.g., High E) is displayed at TOP
-  const displayStrings = [...instrument.tuning].map((openNote, originalIndex) => ({
-    originalIndex, // 0 is lowest pitch string in instrument.tuning array
-    displayNumber: (instrument.stringCount || instrument.tuning.length) - originalIndex,
-    openNote
-  })).reverse();
-
-  // Helper to check if a specific string & fret position is highlighted
-  const isPositionHighlighted = (origIndex, fret) => {
-    return (highlightPositions || []).some(
-      pos => pos && pos.stringIndex === origIndex && pos.fret === fret
-    );
-  };
-
-  // Row indices for inlay dot positioning
-  const totalStrings = displayStrings.length;
-  const singleDotRow = Math.floor((totalStrings - 1) * 0.5);
-  const upperDotRow = Math.max(0, Math.floor((totalStrings - 1) * 0.25));
-  const lowerDotRow = Math.min(totalStrings - 1, Math.ceil((totalStrings - 1) * 0.75));
-
-  // Calculate total neck width dynamically based on fret count
-  const fretColWidthPx = 40; // min px per fret column
-  const headerWidthPx = 96;  // px for string label column
-  const minNeckWidthPx = headerWidthPx + (fretsToDisplay.length * fretColWidthPx);
-
   const hasNut = startFret === 0;
-  const numberedFrets = fretsToDisplay.filter(f => f > 0);
+  const frets = [];
+  for (let f = Math.max(1, startFret); f <= lastFret; f++) frets.push(f);
 
-  const [activeTheme, setActiveTheme] = React.useState(() => {
-    return typeof document !== 'undefined'
-      ? (document.documentElement.getAttribute('data-theme') || 'emerald')
-      : 'emerald';
-  });
+  const scales = frets.map(f => fretScale(f, frets[0]));
+  const columns = scales.map(s => `minmax(${(MIN_FRET_REM * s).toFixed(2)}rem, ${s.toFixed(3)}fr)`).join(' ');
+  const minWidthRem = LABEL_REM + (hasNut ? NUT_REM : 0) + scales.reduce((sum, s) => sum + MIN_FRET_REM * s, 0);
 
-  React.useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const observer = new MutationObserver(() => {
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'emerald';
-      setActiveTheme(currentTheme);
-    });
+  const stringMidis = getStringMidis(instrument);
+  // Highest string on top, like looking down at the neck in playing position
+  const strings = instrument.tuning
+    .map((openNote, index) => ({
+      index,
+      openNote,
+      number: instrument.tuning.length - index,
+      midi: stringMidis[index]
+    }))
+    .reverse();
 
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme']
-    });
-
-    return () => observer.disconnect();
-  }, []);
-
-  const isLightWood = ['emerald', 'nord', 'silk', 'autumn', 'acid'].includes(activeTheme);
-
-  const woodStyle = isLightWood
-    ? {
-        backgroundColor: '#eee0c9',
-        backgroundImage: `linear-gradient(90deg, rgba(220, 195, 155, 0.4) 0%, rgba(245, 235, 215, 0.6) 50%, rgba(220, 195, 155, 0.4) 100%), repeating-linear-gradient(0deg, rgba(140, 100, 50, 0.07) 0px, rgba(140, 100, 50, 0.07) 1px, transparent 1px, transparent 3px)`,
-        boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.18)'
-      }
-    : {
-        backgroundColor: '#241712',
-        backgroundImage: `linear-gradient(90deg, rgba(28, 17, 13, 0.88) 0%, rgba(48, 32, 25, 0.95) 50%, rgba(28, 17, 13, 0.88) 100%), repeating-linear-gradient(0deg, rgba(10, 6, 4, 0.35) 0px, rgba(10, 6, 4, 0.35) 1px, transparent 1px, transparent 4px)`,
-        boxShadow: 'inset 0 2px 12px rgba(0, 0, 0, 0.5)'
-      };
+  const isHighlighted = (stringIndex, fret) =>
+    revealed && highlightPositions.some(p => p?.stringIndex === stringIndex && p.fret === fret);
 
   return (
-    <div className="card bg-base-100 border border-base-300 rounded-2xl p-2 sm:p-5 shadow-2xl backdrop-blur-md overflow-x-auto selection:bg-transparent w-full">
-      <div className="w-full min-w-full flex flex-col" style={{ minWidth: `${minNeckWidthPx}px` }}>
-        {/* Top Fret Header Labels */}
-        <div className="flex items-center mb-1 sm:mb-2 w-full">
-          <div className="w-12 sm:w-20 text-center text-[10px] sm:text-xs font-mono tracking-wider font-semibold text-base-content/60 uppercase shrink-0">
-            Str
-          </div>
-
-          {/* Thin Ivory Nut Header */}
-          {hasNut && (
-            <div className="w-3.5 sm:w-4.5 shrink-0 bg-amber-50 text-amber-950 font-mono text-[9px] font-black text-center py-1 rounded-t border-b-2 border-stone-400 shadow-sm mx-0.5">
-              N
-            </div>
-          )}
-
-          {/* Numbered Frets Header */}
-          <div className="flex-1 grid gap-0 text-center" style={{ gridTemplateColumns: `repeat(${numberedFrets.length}, minmax(32px, 1fr))` }}>
-            {numberedFrets.map(fret => (
-              <div
-                key={`head-${fret}`}
-                className="text-[10px] sm:text-xs font-mono font-bold py-1 text-base-content/80"
-              >
-                {fret}
-              </div>
+    <section aria-label="Fretboard" className="card bg-base-100 shadow-lg p-2 sm:p-4 overflow-x-auto">
+      <div style={{ minWidth: `${minWidthRem}rem` }} className="select-none">
+        {/* Fret numbers */}
+        <div className="flex font-display text-xs sm:text-sm tabular-nums">
+          <div style={{ width: `${LABEL_REM}rem` }} className="shrink-0" />
+          {hasNut && <div style={{ width: `${NUT_REM}rem` }} className="shrink-0" />}
+          <div className="flex-1 grid" style={{ gridTemplateColumns: columns }}>
+            {frets.map(f => (
+              <div key={f} className={`text-center pb-1 ${getFretMarkerType(f) ? 'font-bold' : 'opacity-50'}`}>{f}</div>
             ))}
           </div>
         </div>
 
-        {/* Fretboard Grid Container with Maple (Light) or Rosewood (Dark) Texture */}
-        <div
-          className="relative w-full border-t border-b border-base-300 rounded-lg py-1"
-          style={woodStyle}
-        >
-          {displayStrings.map((str, displayIdx) => {
-            // Calculate string thickness based on pitch (thinnest for High Pitch String 1, thickest for Low Pitch String N)
-            const maxIndex = (instrument.stringCount || 6) - 1;
-            const thicknessPx = Math.max(1.2, Math.min(5.5, 1.2 + (maxIndex - str.originalIndex) * 0.8));
-
-            return (
-              <div key={`string-${str.originalIndex}`} className="relative flex items-center h-10 sm:h-14 group">
-                {/* String Wire Visual */}
-                <div 
-                  className={
-                    isLightWood
-                      ? 'absolute left-12 sm:left-20 right-0 z-0 transition-opacity shadow-[0_1px_2px_rgba(0,0,0,0.4)] bg-gradient-to-r from-stone-600 via-stone-400 to-stone-600 opacity-90 group-hover:opacity-100'
-                      : 'absolute left-12 sm:left-20 right-0 z-0 transition-opacity shadow-[0_1px_3px_rgba(0,0,0,0.8)] bg-gradient-to-r from-slate-400 via-slate-100 to-slate-400 opacity-90 group-hover:opacity-100'
-                  }
-                  style={{ height: `${thicknessPx}px` }} 
-                />
-
-                {/* String Header Label (No 'S' prefix, just string number and open note) */}
-                <div className="w-12 sm:w-20 z-10 flex items-center justify-between pr-1.5 sm:pr-3 pl-1 sm:pl-2 font-mono border-r border-base-300 bg-base-100 h-full shrink-0">
-                  <span className="text-xs sm:text-sm font-black text-base-content/80 font-mono w-4 text-center">
-                    {str.displayNumber}
-                  </span>
-                  <span className="badge badge-primary badge-sm font-bold font-mono">
-                    {str.openNote}
-                  </span>
-                </div>
-
-                {/* Thin Ivory Nut Cell (Fret 0) */}
-                {hasNut && (() => {
-                  const nutNote = getNoteAtFret(str.openNote, 0, displayMode);
-                  const isNutHighlighted = isPositionHighlighted(str.originalIndex, 0);
-                  const isNutTargetMatch = targetNote && getNoteIndex(nutNote) === getNoteIndex(targetNote);
-
-                  return (
-                    <div
-                      key={`nut-${str.originalIndex}`}
-                      onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret: 0, note: nutNote })}
-                      className="w-3.5 sm:w-4.5 shrink-0 z-10 h-full bg-amber-50 border-r-2 border-l border-stone-400 text-amber-950 flex items-center justify-center cursor-pointer shadow-sm relative mx-0.5 hover:brightness-105"
-                      title={`Nut (Fret 0): ${nutNote}`}
-                    >
-                      {revealed && isNutHighlighted ? (
-                        <div className="z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-success text-success-content font-black text-[10px] flex items-center justify-center shadow-lg animate-bounce-subtle">
-                          {nutNote}
-                        </div>
-                      ) : revealed && isNutTargetMatch && (!highlightPositions || highlightPositions.length === 0) ? (
-                        <div className="z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary text-primary-content font-bold text-[10px] flex items-center justify-center shadow-md">
-                          {nutNote}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })()}
-
-                {/* Numbered Fret Cells (Frets 1 to N) */}
-                <div className="flex-1 grid h-full z-10" style={{ gridTemplateColumns: `repeat(${numberedFrets.length}, minmax(32px, 1fr))` }}>
-                  {numberedFrets.map(fret => {
-                    const currentNote = getNoteAtFret(str.openNote, fret, displayMode);
-                    const isHighlighted = isPositionHighlighted(str.originalIndex, fret);
-                    const isTargetNoteMatch = targetNote && getNoteIndex(currentNote) === getNoteIndex(targetNote);
-                    const markerType = getFretMarkerType(fret);
-
-                    return (
-                      <div
-                        key={`cell-${str.originalIndex}-${fret}`}
-                        onClick={() => onCellClick && onCellClick({ stringIndex: str.originalIndex, fret, note: currentNote })}
-                        className={
-                          isLightWood
-                            ? 'relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-stone-400/50 hover:bg-amber-200/30'
-                            : 'relative flex items-center justify-center cursor-pointer transition-colors duration-200 border-r border-stone-400/40 hover:bg-stone-800/40'
-                        }
-                      >
-                        {/* Inlay Dots */}
-                        {markerType === 'single' && displayIdx === singleDotRow && (
-                          <FretMarker isLightWood={isLightWood} />
-                        )}
-                        {markerType === 'double' && (displayIdx === upperDotRow || displayIdx === lowerDotRow) && (
-                          <FretMarker isLightWood={isLightWood} />
-                        )}
-
-                        {/* Note Badge / Marker */}
-                        {revealed && isHighlighted ? (
-                          <div className="z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-success text-success-content font-black text-sm sm:text-base flex items-center justify-center shadow-lg animate-bounce-subtle ring-2 ring-success-content/40">
-                            {currentNote}
-                          </div>
-                        ) : revealed && isTargetNoteMatch && (!highlightPositions || highlightPositions.length === 0) ? (
-                          <div className="z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary text-primary-content font-bold text-xs sm:text-sm flex items-center justify-center shadow-md">
-                            {currentNote}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
+        <div className="flex rounded-field overflow-hidden shadow-inner">
+          {/* String labels */}
+          <div style={{ width: `${LABEL_REM}rem` }} className="shrink-0">
+            {strings.map(s => (
+              <div key={s.index} className="h-9 sm:h-11 flex items-center justify-between px-1.5 font-display">
+                <span className="text-xs opacity-60 tabular-nums">{s.number}</span>
+                <span className="font-bold text-sm sm:text-base">{s.openNote}</span>
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Nut, with open-string answers on it */}
+          {hasNut && (
+            <div style={{ width: `${NUT_REM}rem` }} className="shrink-0 relative z-10 bg-(--nut) bg-linear-to-r from-black/10 via-white/30 to-black/15 border-l-2 border-black/40 shadow-[2px_0_3px_rgb(0_0_0/0.35)]">
+              {strings.map(s => (
+                <div key={s.index} className="h-9 sm:h-11 flex items-center justify-center">
+                  {isHighlighted(s.index, 0) && <NoteDot note={getNoteAtFret(s.openNote, 0, noteDisplay)} />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Fingerboard */}
+          <div className="relative flex-1 bg-fingerboard">
+            <div className="absolute inset-0 grid" style={{ gridTemplateColumns: columns }} aria-hidden="true">
+              {frets.map(f => (
+                <div key={f} className="relative border-r-[3px] border-(--fret) shadow-[1px_0_0_rgb(0_0_0/0.25)]">
+                  <Inlays type={getFretMarkerType(f)} stringCount={strings.length} />
+                </div>
+              ))}
+            </div>
+
+            {strings.map(s => (
+              <div key={s.index} className="relative h-9 sm:h-11 grid" style={{ gridTemplateColumns: columns }}>
+                <span
+                  aria-hidden="true"
+                  className={`absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 shadow-[0_1px_1.5px_rgb(0_0_0/0.45)] ${s.midi < 53 ? 'string-wound' : 'string-plain'}`}
+                  style={{ height: `${stringThickness(s.midi)}px` }}
+                />
+                {frets.map(f => (
+                  <div key={f} className="flex items-center justify-center">
+                    {isHighlighted(s.index, f) && <NoteDot note={getNoteAtFret(s.openNote, f, noteDisplay)} />}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-
-      {/* Fret Legend / Note Count Footer */}
-      <div className="flex items-center justify-between mt-3 px-2 text-xs font-mono text-base-content/70">
-        <div>Frets shown: <span className="text-primary font-semibold">{startFret} to {fretCount}</span></div>
-        {revealed && (
-          <div className="text-success font-semibold flex items-center gap-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-success animate-ping" />
-            {highlightPositions.length} Matching Position{highlightPositions.length === 1 ? '' : 's'} Highlighted
-          </div>
-        )}
-      </div>
-    </div>
+    </section>
   );
 }

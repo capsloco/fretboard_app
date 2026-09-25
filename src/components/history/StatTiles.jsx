@@ -1,5 +1,4 @@
 import React from 'react';
-import { Award, Target, Clock, Zap } from 'lucide-react';
 import { formatDuration } from '../../lib/formatters';
 
 export default function StatTiles({ stats }) {
@@ -10,35 +9,21 @@ export default function StatTiles({ stats }) {
     bestStreak = 0
   } = stats || {};
 
+  const tiles = [
+    ['Rounds', totalSessions],
+    ['Accuracy', `${lifetimeAccuracyPct}%`],
+    ['Practiced', formatDuration(totalPracticeSeconds)],
+    ['Best streak', bestStreak]
+  ];
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-3 text-center shadow-sm">
-        <div className="flex items-center justify-center gap-1 text-base-content/90 text-xs font-mono mb-1">
-          <Award className="w-3.5 h-3.5 text-primary" /> Sessions
+    <div className="stats stats-vertical sm:stats-horizontal w-full bg-base-100 shadow-md">
+      {tiles.map(([title, value]) => (
+        <div key={title} className="stat place-items-center">
+          <div className="stat-title font-display uppercase tracking-wider">{title}</div>
+          <div className="stat-value font-display tabular-nums">{value}</div>
         </div>
-        <div className="text-xl font-bold text-base-content font-mono">{totalSessions}</div>
-      </div>
-
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-3 text-center shadow-sm">
-        <div className="flex items-center justify-center gap-1 text-base-content/90 text-xs font-mono mb-1">
-          <Target className="w-3.5 h-3.5 text-success" /> Accuracy
-        </div>
-        <div className="text-xl font-bold text-base-content font-mono">{lifetimeAccuracyPct}%</div>
-      </div>
-
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-3 text-center shadow-sm">
-        <div className="flex items-center justify-center gap-1 text-base-content/90 text-xs font-mono mb-1">
-          <Clock className="w-3.5 h-3.5 text-primary" /> Practiced
-        </div>
-        <div className="text-xl font-bold text-base-content font-mono">{formatDuration(totalPracticeSeconds)}</div>
-      </div>
-
-      <div className="bg-base-100 border border-base-300 rounded-2xl p-3 text-center shadow-sm">
-        <div className="flex items-center justify-center gap-1 text-base-content/90 text-xs font-mono mb-1">
-          <Zap className="w-3.5 h-3.5 text-warning" /> Best Streak
-        </div>
-        <div className="text-xl font-bold text-base-content font-mono">{bestStreak} 🔥</div>
-      </div>
+      ))}
     </div>
   );
 }

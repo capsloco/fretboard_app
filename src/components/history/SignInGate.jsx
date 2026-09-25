@@ -1,37 +1,21 @@
 import React from 'react';
-import { LineChart, LogIn, ArrowLeft } from 'lucide-react';
+import { LogIn, ArrowLeft } from 'lucide-react';
 
 export default function SignInGate({ onOpenAuth, onBack }) {
   return (
-    <div className="my-auto flex flex-col items-center text-center py-8 px-4">
-      <div className="card bg-base-100 border border-base-300 shadow-2xl max-w-lg w-full p-8 sm:p-12">
-        <div className="card-body items-center p-0">
-          <div className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-4">
-            <LineChart className="w-8 h-8 text-primary" />
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-black text-base-content mb-3">
-            Sign In to Track Your Progress
-          </h2>
-          <p className="text-base-content/90 max-w-sm text-sm sm:text-base font-medium mb-8">
-            Session history, accuracy trends, and note-by-note breakdowns are saved to your account so you can track progress over time.
-          </p>
-
-          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={onOpenAuth}
-              className="btn btn-primary btn-lg font-black uppercase tracking-wider w-full sm:w-auto shadow-xl"
-            >
-              <LogIn className="w-5 h-5" /> Sign In
-            </button>
-            <button
-              onClick={onBack}
-              className="btn btn-ghost border border-base-300 hover:bg-base-200 text-base-content btn-lg font-bold w-full sm:w-auto"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          </div>
-        </div>
+    <div className="my-auto flex flex-col items-center text-center py-10 px-4">
+      <h2 className="font-display font-extrabold uppercase tracking-[0.15em] text-3xl sm:text-4xl">Track your progress</h2>
+      <p className="mt-3 max-w-md opacity-80">
+        Sign in to keep every pass / fail round: accuracy over time, your best streaks and the notes you miss most.
+        Practising works without an account.
+      </p>
+      <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+        <button type="button" onClick={onOpenAuth} className="btn btn-primary btn-lg font-display uppercase tracking-widest">
+          <LogIn className="size-5" /> Sign in
+        </button>
+        <button type="button" onClick={onBack} className="btn btn-lg font-display uppercase tracking-widest">
+          <ArrowLeft className="size-5" /> Back
+        </button>
       </div>
     </div>
   );

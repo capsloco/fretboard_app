@@ -1,88 +1,93 @@
 import React from 'react';
-import { Mic, Volume2, Sparkles, Clock, Target } from 'lucide-react';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
+
+function Feedback({ result }) {
+  if (!result) return <span className="h-8" aria-hidden="true" />;
+
+  const detail = result.correct
+    ? result.heard && `heard ${result.heard}`
+    : result.heard
+      ? `heard ${result.heard}${result.wrongOctave ? ', right note on the wrong string or octave' : `, wanted ${result.target}`}`
+      : `wanted ${result.target}`;
+
+  return (
+    <span
+      key={result.id}
+      role="status"
+      className={`badge badge-lg gap-1.5 font-display uppercase tracking-wide ${result.correct ? 'badge-success' : 'badge-error'}`}
+    >
+      {result.correct ? <Check className="size-4" /> : <X className="size-4" />}
+      {result.correct ? 'Got it' : 'Missed'}
+      {detail && <span className="normal-case tracking-normal font-sans font-medium opacity-90">· {detail}</span>}
+    </span>
+  );
+}
 
 export default function DisplayPrompt({
   prompt,
   sessionMode, // 'tracked' | 'flashcard'
-  timeLeft, // Countdown for prompt or overall flashcard time
+  timeLeft,
+  secondsPerNote,
   isRevealed,
   onRevealToggle,
-  listening,
-  streak = 0
+  stats,
+  lastResult
 }) {
   if (!prompt) return null;
 
+  const isLongName = prompt.note.length > 2;
+  const showTimer = sessionMode === 'flashcard' && timeLeft !== null && timeLeft !== undefined;
+
   return (
-    <div className="w-full flex flex-col items-center justify-center py-2 sm:py-6 px-2 sm:px-4">
-      {/* Top Banner: Mode badge & Streak */}
-      <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap justify-center">
-        <span className="badge badge-neutral badge-lg gap-1.5 font-bold uppercase tracking-wider text-xs shadow-sm">
-          <Target className="w-3.5 h-3.5 text-primary" />
-          {sessionMode === 'tracked' ? 'Pass / Fail' : 'Flashcard'}
-        </span>
+    <section aria-live="polite" className="card bg-base-100 shadow-lg w-full max-w-3xl mx-auto p-2">
+      <div className="rounded-[calc(var(--radius-box)-0.25rem)] border-4 border-double border-base-300 px-4 py-4 sm:px-8 sm:py-6 flex flex-col items-center text-center">
+        {/* Round readout */}
+        <div className="w-full flex items-center justify-between font-display text-xs sm:text-sm uppercase tracking-[0.2em]">
+          <span className="opacity-70">{sessionMode === 'tracked' ? 'Pass / Fail' : 'Flashcards'}</span>
+          {sessionMode === 'tracked' ? (
+            <span className="flex items-center gap-3">
+              {stats.currentStreak > 1 && <span className="badge badge-sm badge-secondary tracking-wider">Streak {stats.currentStreak}</span>}
+              <span className="tabular-nums opacity-70">{stats.correctCount}/{stats.totalPrompts}</span>
+            </span>
+          ) : (
+            showTimer && <span className="tabular-nums opacity-70">Next in {timeLeft}s</span>
+          )}
+        </div>
 
-        {sessionMode === 'tracked' && streak > 0 && (
-          <span className="badge badge-warning badge-lg gap-1.5 font-extrabold text-xs shadow-md animate-pulse">
-            <Sparkles className="w-3.5 h-3.5" />
-            STREAK: {streak} 🔥
-          </span>
+        {/* The prompt */}
+        <div className="font-script text-3xl sm:text-4xl text-secondary -mb-4 sm:-mb-6 mt-1 select-none">find</div>
+        <h2
+          className={`font-display font-extrabold leading-none tracking-tight text-stamped ${
+            isLongName ? 'text-[4.5rem] sm:text-[7.5rem]' : 'text-[7.5rem] sm:text-[11rem]'
+          }`}
+        >
+          {prompt.note}
+        </h2>
+        <p className="font-display font-bold uppercase tracking-[0.12em] text-2xl sm:text-4xl -mt-1 sm:-mt-3">
+          {prompt.promptText}
+        </p>
+        {prompt.subText && (
+          <p className="mt-1 text-sm sm:text-base opacity-70">{prompt.subText}</p>
         )}
 
-        {/* Voice Listening Badge */}
-        {listening && (
-          <span className="badge badge-success badge-lg gap-1.5 font-bold text-xs shadow-md animate-pulse">
-            <Mic className="w-3.5 h-3.5" />
-            Voice Active
-          </span>
+        {showTimer && (
+          <progress
+            className="progress progress-primary w-full max-w-sm mt-3"
+            value={timeLeft}
+            max={secondsPerNote}
+            aria-label="Time left on this note"
+          />
         )}
-      </div>
 
-      {/* Primary Massive Card Display for 4-6 ft viewing distance */}
-      <div className="card bg-base-100 border-2 border-base-300 shadow-2xl w-full max-w-2xl text-center backdrop-blur-xl overflow-hidden p-6 sm:p-10">
-        <div className="card-body items-center p-0">
-          {/* Time Progress Bar / Timer */}
-          {timeLeft !== null && timeLeft !== undefined && (
-            <div className="badge badge-neutral badge-xl font-mono gap-2 mb-2">
-              <Clock className="w-4 h-4 text-primary" />
-              <span>Next Prompt:</span>
-              <span className="text-primary font-black">{timeLeft}s</span>
-            </div>
-          )}
-
-          {/* Prompt Header */}
-          <div className="font-mono text-xs sm:text-sm font-semibold tracking-widest uppercase text-base-content/60 mt-1">
-            {prompt.promptType === 'string_specific' ? 'String Specific Prompt' : 'Global Note Prompt'}
-          </div>
-
-          {/* Massive Target Note Banner */}
-          <div className="relative my-2">
-            <h1 className="text-7xl sm:text-9xl font-black tracking-tight text-base-content drop-shadow-sm">
-              {prompt.note}
-            </h1>
-          </div>
-
-          {/* Prompt Instructional Subtitle */}
-          <p className="text-xl sm:text-4xl font-black text-primary tracking-wide">
-            {prompt.promptText}
-          </p>
-
-          {prompt.subText && (
-            <p className="text-base-content/70 text-xs sm:text-base font-mono mt-1">
-              {prompt.subText}
-            </p>
-          )}
-
-          {/* Answer Reveal Button / State */}
-          <div className="card-actions justify-center mt-6">
-            <button
-              onClick={onRevealToggle}
-              className={isRevealed ? 'btn btn-secondary btn-outline btn-md sm:btn-lg font-extrabold uppercase tracking-wider shadow-lg' : 'btn btn-primary btn-md sm:btn-lg font-extrabold uppercase tracking-wider shadow-lg'}
-            >
-              {isRevealed ? 'Hide Answer on Neck' : 'Reveal Answer on Neck'}
-            </button>
-          </div>
+        {/* Feedback + reveal */}
+        <div className="w-full mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <Feedback result={lastResult} />
+          <button type="button" onClick={onRevealToggle} className="btn btn-sm btn-ghost font-display uppercase tracking-wider">
+            {isRevealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {isRevealed ? 'Hide answer' : 'Show on neck'}
+          </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,78 +1,63 @@
 import React from 'react';
-import { SlidersHorizontal } from 'lucide-react';
 
 export default function FretRangeSlider({ minFret, maxFret, onChangeMin, onChangeMax, maxInstrumentFrets = 24 }) {
-  const quickPresets = [
-    { label: 'Open (0–5)', min: 0, max: 5 },
-    { label: 'Mid (5–12)', min: 5, max: 12 },
-    { label: 'Upper (12–24)', min: 12, max: maxInstrumentFrets },
-    { label: 'Full (0–24)', min: 0, max: maxInstrumentFrets },
+  const presets = [
+    { label: 'Open', min: 0, max: 5 },
+    { label: 'Middle', min: 5, max: 12 },
+    { label: 'Upper', min: 12, max: maxInstrumentFrets },
+    { label: 'Whole neck', min: 0, max: maxInstrumentFrets }
   ];
 
   return (
-    <fieldset className="fieldset bg-base-200/40 border border-base-300 rounded-box p-4 space-y-3">
-      <legend className="fieldset-legend flex items-center justify-between w-full font-mono text-xs uppercase tracking-wider text-base-content/80 font-bold">
-        <span className="flex items-center gap-1.5 cursor-pointer">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
-          Fret Range Boundaries
-        </span>
-        <span className="badge badge-primary font-mono text-xs font-bold">
-          Frets {minFret} – {maxFret}
-        </span>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend font-display uppercase tracking-[0.15em] text-sm">
+        Fret range <span className="badge badge-neutral font-display tabular-nums ml-2">{minFret}–{maxFret}</span>
       </legend>
 
-      {/* Quick Boundary Preset Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {quickPresets.map((preset, idx) => {
+      <div className="join w-full flex-wrap" role="group" aria-label="Fret range presets">
+        {presets.map(preset => {
           const isActive = minFret === preset.min && maxFret === preset.max;
           return (
             <button
-              key={idx}
+              key={preset.label}
               type="button"
+              aria-pressed={isActive}
               onClick={() => {
                 onChangeMin(preset.min);
                 onChangeMax(preset.max);
               }}
-              className={isActive ? 'btn btn-xs btn-primary font-mono font-bold' : 'btn btn-xs btn-ghost font-mono font-bold'}
+              className={`join-item btn btn-sm flex-1 font-display uppercase tracking-wider ${isActive ? 'btn-neutral' : ''}`}
             >
               {preset.label}
+              <span className="opacity-60 tabular-nums normal-case">{preset.min}–{preset.max}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Dual Sliders */}
-      <div className="grid grid-cols-2 gap-4 pt-1">
-        <div>
-          <label htmlFor="min-fret-slider" className="label text-[10px] font-mono text-base-content/80 block mb-1">
-            Min Fret ({minFret})
-          </label>
+      <div className="grid grid-cols-2 gap-4 mt-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-sm">Lowest fret: <strong className="tabular-nums">{minFret}</strong></span>
           <input
-            id="min-fret-slider"
-            aria-label="Minimum fret boundary"
             type="range"
             min="0"
             max={maxFret}
             value={minFret}
             onChange={(e) => onChangeMin(parseInt(e.target.value, 10))}
-            className="range range-primary range-xs"
+            className="range range-sm range-primary"
           />
-        </div>
-        <div>
-          <label htmlFor="max-fret-slider" className="label text-[10px] font-mono text-base-content/80 block mb-1">
-            Max Fret ({maxFret})
-          </label>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm">Highest fret: <strong className="tabular-nums">{maxFret}</strong></span>
           <input
-            id="max-fret-slider"
-            aria-label="Maximum fret boundary"
             type="range"
             min={minFret}
             max={maxInstrumentFrets}
             value={maxFret}
             onChange={(e) => onChangeMax(parseInt(e.target.value, 10))}
-            className="range range-primary range-xs"
+            className="range range-sm range-primary"
           />
-        </div>
+        </label>
       </div>
     </fieldset>
   );

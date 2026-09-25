@@ -3,7 +3,10 @@
   <head>
     <script>
       (function() {
-        var theme = localStorage.getItem('fretlearn_theme') || 'emerald';
+        var theme = localStorage.getItem('fretlearn_theme');
+        if (theme !== 'tweed' && theme !== 'tolex') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'tolex' : 'tweed';
+        }
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
@@ -39,12 +42,8 @@
     <meta property="og:description" content="FretLearn is a free app that helps you learn the fretboard by testing and improving your skills over time. 100% free." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://fretlearn.app" />
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-base-200 text-base-content font-sans antialiased min-h-screen">
+  <body class="antialiased min-h-screen">
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5THRLVG4"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>

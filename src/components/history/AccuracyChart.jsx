@@ -4,26 +4,34 @@ import { TrendingUp } from 'lucide-react';
 import { ACCURACY_RANGES, bucketAccuracyByRange } from '../../lib/statsLogic';
 import { formatDate } from '../../lib/formatters';
 
+const TOOLTIP_STYLE = {
+  fontSize: 12,
+  borderRadius: 6,
+  background: 'var(--color-base-100)',
+  border: '1px solid var(--color-base-300)',
+  color: 'var(--color-base-content)'
+};
+
 export default function AccuracyChart({ sessions }) {
   const [rangeKey, setRangeKey] = useState('30d');
 
   const data = useMemo(() => bucketAccuracyByRange(sessions, rangeKey), [sessions, rangeKey]);
 
   return (
-    <div className="bg-base-100 border border-base-300 rounded-2xl p-4 sm:p-5 shadow-md">
+    <div className="card bg-base-100 shadow-md p-4 sm:p-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 font-bold text-base-content">
-          <TrendingUp className="w-4 h-4 text-primary" />
+        <h3 className="flex items-center gap-2 font-display font-bold uppercase tracking-[0.15em]">
+          <TrendingUp className="size-4 text-secondary" aria-hidden="true" />
           Accuracy Over Time
-        </div>
-        <div role="tablist" className="tabs tabs-box tabs-sm bg-base-200 w-fit">
+        </h3>
+        <div role="tablist" className="tabs tabs-box tabs-sm w-fit">
           {ACCURACY_RANGES.map((r) => (
             <button
               key={r.key}
               role="tab"
               aria-label={r.label}
               aria-selected={rangeKey === r.key}
-              className={rangeKey === r.key ? 'tab tab-active font-bold' : 'tab font-bold'}
+              className={`tab font-display ${rangeKey === r.key ? 'tab-active' : ''}`}
               onClick={() => setRangeKey(r.key)}
             >
               {r.label}
@@ -33,8 +41,8 @@ export default function AccuracyChart({ sessions }) {
       </div>
 
       {data.length === 0 ? (
-        <div className="h-56 flex items-center justify-center text-base-content/90 text-sm font-mono">
-          No sessions in this range yet
+        <div className="h-56 flex items-center justify-center text-sm opacity-70">
+          No rounds in this range yet
         </div>
       ) : (
         <div className="h-56 text-primary">
@@ -51,19 +59,19 @@ export default function AccuracyChart({ sessions }) {
                 dataKey="date"
                 tickFormatter={(d) => formatDate(d)}
                 tick={{ fontSize: 11 }}
-                className="fill-base-content/90"
+                className="fill-base-content/70"
                 minTickGap={30}
               />
               <YAxis
                 domain={[0, 100]}
                 tick={{ fontSize: 11 }}
-                className="fill-base-content/90"
+                className="fill-base-content/70"
                 width={36}
               />
               <Tooltip
                 formatter={(value) => [`${value}%`, 'Accuracy']}
                 labelFormatter={(d) => formatDate(d)}
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                contentStyle={TOOLTIP_STYLE}
               />
               <Area
                 type="monotone"

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ArrowLeft, LineChart } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import SignInGate from './SignInGate';
 import StatTiles from './StatTiles';
 import AccuracyChart from './AccuracyChart';
@@ -68,22 +68,16 @@ export default function HistoryStatsScreen({ user, onBack, onOpenAuth }) {
   return (
     <div className="flex-1 flex flex-col gap-4 py-2">
       <div className="flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="btn btn-ghost btn-sm gap-1.5 font-bold text-base-content hover:bg-base-200"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
+        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm font-display uppercase tracking-wider">
+          <ArrowLeft className="size-4" /> Back
         </button>
-        <div className="flex items-center gap-2 font-black text-lg text-base-content">
-          <LineChart className="w-5 h-5 text-primary" />
-          History &amp; Stats
-        </div>
-        <div className="w-16" />
+        <h2 className="font-display font-extrabold uppercase tracking-[0.15em] text-2xl sm:text-3xl">Your progress</h2>
+        <div className="w-20" />
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center py-16">
-          <span className="loading loading-spinner loading-lg text-primary" />
+          <span className="loading loading-dots loading-lg" aria-label="Loading stats" />
         </div>
       ) : (
         <div className="space-y-4">

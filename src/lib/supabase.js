@@ -86,14 +86,16 @@ export async function loadUserSettings(userId = null) {
       if (user?.user_metadata?.fretlearn_settings) {
         return user.user_metadata.fretlearn_settings;
       }
-    } catch (e) {}
+    } catch {
+      // fall back to localStorage below
+    }
   }
 
   // 2. Fallback to LocalStorage
   try {
     const raw = localStorage.getItem(LOCAL_USER_SETTINGS_KEY);
     return raw ? JSON.parse(raw) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -135,7 +137,7 @@ export function getLocalCustomInstruments() {
   try {
     const raw = localStorage.getItem(LOCAL_CUSTOM_INSTRUMENTS_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -214,7 +216,10 @@ export async function savePracticeAttempts(sessionId, attempts, userId = null) {
     string_open_note: a.stringOpenNote ?? null,
     is_correct: a.isCorrect,
     response_time_ms: a.responseTimeMs ?? null,
-    input_source: a.inputSource
+    input_source: a.inputSource,
+    detected_note: a.detectedNote ?? null,
+    detected_octave: a.detectedOctave ?? null,
+    detected_frequency_hz: a.detectedFrequencyHz ?? null
   }));
 
   const { error } = await supabase.from('practice_attempts').insert(rows);

@@ -82,6 +82,7 @@ export default function App() {
   // Pitch classes a weak-spot round is limited to; null for a normal round
   const [roundFocus, setRoundFocus] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'account' | 'device' | 'failed'
+  const [micState, setMicState] = useState(null); // 'ready' | 'ringing' (last note still sounding) | null
 
   // Timers
   const [timeLeft, setTimeLeft] = useState(null);
@@ -346,6 +347,9 @@ export default function App() {
     if (Date.now() - promptShownAtRef.current < MIC_GRACE_MS) return;
 
     const { correct, pitchClassMatch } = gradeDetectedNote(currentPrompt, note.midi, currentInstrument);
+    // A right note counts straight away. A wrong one has to be plucked after this prompt came up and held
+    // for a moment, so the last note ringing on, a slide or a bit of fret buzz isn't marked as a miss.
+    if (!correct && !(note.fresh && note.confirmed)) return;
     const heard = midiToNoteLabel(note.midi, noteDisplay);
     const detected = { ...heard, frequency: note.frequency, wrongOctave: pitchClassMatch && !correct };
 
@@ -512,6 +516,8 @@ export default function App() {
               onNote={handleDetectedNote}
               onCommand={handleCommand}
               onEndRound={finishSession}
+              promptKey={currentPrompt}
+              onMicStateChange={setMicState}
             />
 
             <DisplayPrompt
@@ -527,6 +533,7 @@ export default function App() {
               }}
               stats={stats}
               lastResult={lastResult}
+              micState={config.inputMode === 'mic' ? micState : null}
             />
 
             {/* Manual scoring: always available as a fallback, front and centre without the mic */}

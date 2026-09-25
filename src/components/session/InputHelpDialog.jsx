@@ -13,6 +13,12 @@ const SECTIONS = [
           card: keep playing until you find it or time runs out.
         </p>
         <p>
+          A wrong note only counts when you pluck it after the prompt comes up and let it sound for a moment.
+          The last note ringing on, a quick slide or a bit of fret buzz is ignored. The light on the note card
+          shows <strong>Ready</strong> when the mic is waiting for your next note, and{' '}
+          <strong>Still ringing</strong> while the last one carries on. Muting the strings between notes keeps it green.
+        </p>
+        <p>
           On “find it on the A string” prompts you have to play the exact pitch that string makes
           inside your fret range, so the same note on the wrong string usually won’t count. A mic
           can’t tell strings apart when the pitch is identical, though.

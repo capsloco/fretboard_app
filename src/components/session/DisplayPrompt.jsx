@@ -9,6 +9,27 @@ function feedbackStyle(result) {
   return { label: 'Missed', tone: 'badge-error', Icon: X };
 }
 
+/** Whether the mic is ready for the next note, or still hearing the last one ring (which won't count) */
+function MicLamp({ state }) {
+  const ringing = state === 'ringing';
+  return (
+    <span
+      aria-hidden="true"
+      className="flex items-center gap-1.5"
+      title={ringing
+        ? 'The last note is still ringing. It won’t count against you: mute the strings or play the next note.'
+        : 'Listening for the next note.'}
+    >
+      <span
+        className={`inline-block size-3 rounded-full transition-colors ${
+          ringing ? 'bg-warning' : 'bg-success shadow-[0_0_8px_var(--color-success)]'
+        }`}
+      />
+      {ringing ? 'Still ringing' : 'Ready'}
+    </span>
+  );
+}
+
 function Feedback({ result }) {
   if (!result) return <span className="h-8" aria-hidden="true" />;
 
@@ -41,7 +62,8 @@ export default function DisplayPrompt({
   isRevealed,
   onRevealToggle,
   stats,
-  lastResult
+  lastResult,
+  micState = null // 'ready' | 'ringing' in mic mode
 }) {
   if (!prompt) return null;
 
@@ -53,7 +75,10 @@ export default function DisplayPrompt({
       <div className="rounded-[calc(var(--radius-box)-0.25rem)] border-4 border-double border-base-300 px-4 py-4 sm:px-8 sm:py-6 flex flex-col items-center text-center">
         {/* Round readout */}
         <div className="w-full flex items-center justify-between font-display text-xs sm:text-sm uppercase tracking-[0.2em]">
-          <span className="opacity-70">{isWeakSpotRound ? 'Weak spots' : sessionMode === 'tracked' ? 'Pass / Fail' : 'Flashcards'}</span>
+          <span className="flex items-center gap-3">
+            <span className="opacity-70">{isWeakSpotRound ? 'Weak spots' : sessionMode === 'tracked' ? 'Pass / Fail' : 'Flashcards'}</span>
+            {micState && <MicLamp state={micState} />}
+          </span>
           {sessionMode === 'tracked' ? (
             <span className="flex items-center gap-3">
               {stats.currentStreak > 1 && <span className="badge badge-sm badge-secondary tracking-wider">Streak {stats.currentStreak}</span>}

@@ -94,12 +94,13 @@ describe('NoteTracker', () => {
   const C3 = midiToFrequency(48);
   const D3 = midiToFrequency(50);
 
-  // Feed frames 30 ms apart; returns the emitted events
-  function run(tracker, frames, startTime = 0) {
+  // Feed frames 30 ms apart; returns the emitted events (all of them, or only new notes)
+  function runAll(tracker, frames, startTime = 0) {
     return frames
       .map((frame, i) => tracker.update({ ...frame, time: startTime + i * 30 }))
       .filter(Boolean);
   }
+  const run = (tracker, frames, startTime = 0) => runAll(tracker, frames, startTime).filter(e => !e.repeat);
   const silence = (n) => Array.from({ length: n }, () => ({ frequency: null, rms: 0.001 }));
   const note = (frequency, n, rms = 0.05) => Array.from({ length: n }, () => ({ frequency, rms }));
 
@@ -146,5 +147,77 @@ describe('NoteTracker', () => {
     const tracker = new NoteTracker();
     const events = run(tracker, [...silence(3), ...note(C3, 5), ...silence(6), ...note(C3, 5)]);
     expect(events.map(e => e.midi)).toEqual([48, 48]);
+  });
+
+  it('reports a note again, confirmed, once it has held for a moment', () => {
+    const events = runAll(new NoteTracker(), [...silence(3), ...note(C3, 12)]);
+    expect(events.map(e => [e.midi, e.repeat, e.confirmed])).toEqual([[48, false, false], [48, true, true]]);
+  });
+
+  it('does not confirm a pitch that only passes through, like a slide or fret buzz', () => {
+    const events = runAll(new NoteTracker(), [...silence(3), ...note(C3, 4), ...note(D3, 4), ...silence(6)]);
+    expect(events.some(e => e.confirmed)).toBe(false);
+  });
+
+  it('does not count a quiet touch below the gate as an attack', () => {
+    const tracker = new NoteTracker({ gateRms: 0.02 });
+    runAll(tracker, [...silence(3), { frequency: null, rms: 0.01 }]);
+    expect(tracker.lastOnsetTime).toBe(-Infinity);
+    runAll(tracker, [{ frequency: null, rms: 0.03 }], 120);
+    expect(tracker.lastOnsetTime).toBe(120);
+  });
+
+  describe('after arm() for a new prompt', () => {
+    // C3 plucked at 0 ms and still ringing when the next prompt comes up at 600 ms
+    function ringingThenArm() {
+      const tracker = new NoteTracker();
+      runAll(tracker, [...silence(3), ...note(C3, 17)]);
+      tracker.arm(600);
+      return tracker;
+    }
+
+    it('says the last note is still ringing, until it stops', () => {
+      const tracker = ringingThenArm();
+      runAll(tracker, note(C3, 3), 600);
+      expect(tracker.ringing).toBe(true);
+      runAll(tracker, silence(6), 690);
+      expect(tracker.ringing).toBe(false);
+    });
+
+    it('does not call a drift from the ringing note fresh', () => {
+      const tracker = ringingThenArm();
+      const events = runAll(tracker, note(D3, 12), 600);
+      expect(events.length).toBeGreaterThan(0);
+      expect(events.every(e => e.midi === 50 && !e.fresh)).toBe(true);
+    });
+
+    it('calls a note plucked after the settle time fresh, and stops saying ringing', () => {
+      const tracker = ringingThenArm();
+      runAll(tracker, silence(10), 600);
+      const events = runAll(tracker, [...silence(1), ...note(D3, 10)], 1000);
+      expect(tracker.ringing).toBe(false);
+      expect(events.map(e => [e.midi, e.fresh, e.confirmed])).toEqual([[50, true, false], [50, true, true]]);
+    });
+
+    it('does not call the ringing note fresh when a bump sounds it again', () => {
+      const tracker = ringingThenArm();
+      runAll(tracker, note(C3, 13), 600);
+      const events = runAll(tracker, [{ frequency: null, rms: 0.12 }, ...note(C3, 10)], 1000);
+      expect(events.map(e => [e.midi, e.fresh])).toEqual([[48, false], [48, false]]);
+    });
+
+    it('calls the old note fresh again once it has stopped and is plucked anew', () => {
+      const tracker = ringingThenArm();
+      runAll(tracker, silence(10), 600);
+      const events = run(tracker, [...silence(1), ...note(C3, 5)], 1000);
+      expect(events.map(e => [e.midi, e.fresh])).toEqual([[48, true]]);
+    });
+
+    it('does not call a note plucked right away fresh: the hand is still leaving the last one', () => {
+      const tracker = ringingThenArm();
+      const events = runAll(tracker, [...silence(2), ...note(D3, 10)], 600);
+      expect(events.length).toBeGreaterThan(0);
+      expect(events.every(e => !e.fresh)).toBe(true);
+    });
   });
 });

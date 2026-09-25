@@ -64,7 +64,9 @@ export default function InputPanel({
   onSensitivityChange,
   onNote,
   onCommand,
-  onEndRound
+  onEndRound,
+  promptKey, // changes with each new prompt
+  onMicStateChange // 'ready' | 'ringing' | null (not listening)
 }) {
   const helpRef = useRef(null);
   const onCommandRef = useRef(onCommand);
@@ -79,12 +81,23 @@ export default function InputPanel({
     onCommandRef.current = onCommand;
   });
 
-  const { status, frame, gateDb, resume } = usePitchListener({
+  const { status, frame, gateDb, resume, expectNewNote } = usePitchListener({
     enabled: mode === 'mic',
     instrument,
     sensitivity,
     onNote
   });
+  const listening = mode === 'mic' && status === 'listening';
+
+  // A note still ringing from the last prompt isn't an answer to this one
+  useEffect(() => {
+    expectNewNote();
+  }, [promptKey, listening, expectNewNote]);
+
+  const micState = listening ? (frame?.ringing ? 'ringing' : 'ready') : null;
+  useEffect(() => {
+    onMicStateChange?.(micState);
+  }, [micState, onMicStateChange]);
 
   // Voice commands
   useEffect(() => {

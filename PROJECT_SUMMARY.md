@@ -24,11 +24,14 @@ practice with a recap at the end and nothing saved.
    `focusNotes` (pitch classes) to limit the pool.
 2. `InputPanel` owns the answer input for the chosen mode:
    - **Mic**: `usePitchListener` runs `PitchListener` (`lib/pitchDetection.js`): YIN pitch detection on the raw mic
-     signal, then `NoteTracker` turns steady pitches into note events.
+     signal, then `NoteTracker` turns steady pitches into note events. Each new prompt calls `expectNewNote()`
+     (`NoteTracker.arm()`); events then say whether the note was plucked afresh for this prompt (`fresh`) and has
+     held for a moment (`confirmed`), and frames say whether the last prompt's note is still ringing.
    - **Voice**: `lib/voice.js` wraps the Web Speech API and matches whole words ("got it", "missed").
    - **Keys**: Space / Enter score a point, M / Backspace a miss, in every mode.
 3. `App.handleDetectedNote` grades a note with `gradeDetectedNote()`: global prompts accept any octave, string prompts
-   need the exact pitch. The string's octave comes from `getStringMidis()`, which infers it from standard tuning.
+   need the exact pitch. A right note counts at once; a wrong one only when it is `fresh` and `confirmed`, so a note
+   left ringing, a slide or fret buzz isn't marked as a miss. The string's octave comes from `getStringMidis()`, which infers it from standard tuning.
 4. `answer()` records the attempt (including the detected note), updates the streak and moves to the next prompt.
    In flashcards a wrong note keeps the card up (the note is kept in `wrongNotesHeard`), and a card that runs out of
    time is recorded as a miss with `inputSource = 'timeout'`.

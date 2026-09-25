@@ -83,25 +83,37 @@ export function detectPitch(samples, sampleRate, {
  * or playing a different note reports again. A pitch change without a fresh
  * attack has to hold much longer, so a decaying string drifting onto a
  * harmonic doesn't register as a new note.
+ *
+ * A reported note is reported a second time, with `repeat` set, once it has
+ * held for `confirmFrames`. Each event says whether the note has held that
+ * long (`confirmed`) and whether it was plucked afresh after the last arm()
+ * (`fresh`), so the caller can take a right note straight away but ask more
+ * of a wrong one.
  */
 export class NoteTracker {
   constructor({
     stableFrames = 3,
     unattackedStableFrames = 9,
+    confirmFrames = 8,
     releaseFrames = 5,
-    onsetRatio = 1.8,
+    onsetRatio = 2,
     onsetMemory = 8,
     attackWindowMs = 350,
-    refractoryMs = 200
+    refractoryMs = 200,
+    armSettleMs = 300,
+    gateRms = 0
   } = {}) {
     Object.assign(this, {
       stableFrames,
       unattackedStableFrames,
+      confirmFrames,
       releaseFrames,
       onsetRatio,
       onsetMemory,
       attackWindowMs,
-      refractoryMs
+      refractoryMs,
+      armSettleMs,
+      gateRms
     });
     this.reset();
   }
@@ -109,9 +121,12 @@ export class NoteTracker {
   reset() {
     this.levels = [];
     this.lastOnsetTime = -Infinity;
+    this.armedAt = -Infinity;
+    this.heldOver = null;
     this.attackPending = false;
     this.lastEmitted = null;
-    this.silentFrames = 0;
+    this.emittedOnset = null;
+    this.silentFrames = this.releaseFrames;
     this.clearCandidate();
   }
 
@@ -120,18 +135,36 @@ export class NoteTracker {
     this.count = 0;
     this.centsSum = 0;
     this.frequencySum = 0;
+    this.confirmPending = false;
+  }
+
+  /**
+   * A new prompt is up. Notes plucked from `time + armSettleMs` on are `fresh`; anything
+   * still ringing from before, or plucked while the hand leaves the last note, isn't.
+   * Until the note ringing now stops, it (in any octave) isn't fresh either: a bump or a
+   * finger squeaking along the strings can read as an attack and sound it again.
+   */
+  arm(time) {
+    this.armedAt = time;
+    this.heldOver = this.silentFrames < this.releaseFrames ? (this.candidate ?? this.lastEmitted) : null;
+  }
+
+  /** Sound that started before the last arm() is still going, with no fresh pluck since */
+  get ringing() {
+    return this.lastOnsetTime < this.armedAt && this.silentFrames < this.releaseFrames;
   }
 
   /**
    * @param {{ frequency: number|null, rms: number, time: number }} frame
-   * @returns {{ midi: number, frequency: number, cents: number } | null}
+   * @returns {{ midi: number, frequency: number, cents: number, fresh: boolean, confirmed: boolean, repeat: boolean } | null}
    */
   update({ frequency, rms, time }) {
     const quietest = this.levels.length > 0 ? Math.min(...this.levels) : rms;
     this.levels.push(rms);
     if (this.levels.length > this.onsetMemory) this.levels.shift();
 
-    if (rms > quietest * this.onsetRatio && time - this.lastOnsetTime > this.refractoryMs) {
+    // An attack is a jump in level loud enough to be a note, not a touch on a quiet string
+    if (rms > quietest * this.onsetRatio && rms >= this.gateRms && time - this.lastOnsetTime > this.refractoryMs) {
       this.lastOnsetTime = time;
       this.attackPending = true;
       this.levels = [rms]; // measure the next attack against this note, not the silence before it
@@ -142,6 +175,7 @@ export class NoteTracker {
       this.silentFrames++;
       if (this.silentFrames >= this.releaseFrames) {
         this.lastEmitted = null;
+        this.heldOver = null;
         this.clearCandidate();
       }
       return null;
@@ -163,19 +197,36 @@ export class NoteTracker {
     this.frequencySum += frequency;
 
     const recentlyAttacked = time - this.lastOnsetTime <= this.attackWindowMs;
+    // An attack that found no note in time can't make a ringing note count as new later
+    if (!recentlyAttacked) this.attackPending = false;
     const needed = recentlyAttacked ? this.stableFrames : this.unattackedStableFrames;
     const isNew = midi !== this.lastEmitted || this.attackPending;
 
     if (this.count >= needed && isNew) {
       this.lastEmitted = midi;
       this.attackPending = false;
-      return {
-        midi,
-        frequency: this.frequencySum / this.count,
-        cents: Math.round(this.centsSum / this.count)
-      };
+      this.emittedOnset = recentlyAttacked ? this.lastOnsetTime : null;
+      this.confirmPending = this.count < this.confirmFrames;
+      return this.noteEvent(midi, false);
+    }
+    if (this.confirmPending && this.count >= this.confirmFrames) {
+      this.confirmPending = false;
+      return this.noteEvent(midi, true);
     }
     return null;
+  }
+
+  noteEvent(midi, repeat) {
+    return {
+      midi,
+      frequency: this.frequencySum / this.count,
+      cents: Math.round(this.centsSum / this.count),
+      fresh: this.emittedOnset !== null
+        && this.emittedOnset >= this.armedAt + this.armSettleMs
+        && (this.heldOver === null || Math.abs(midi - this.heldOver) % 12 !== 0),
+      confirmed: this.count >= this.confirmFrames,
+      repeat
+    };
   }
 }
 
@@ -215,7 +266,15 @@ export class PitchListener {
   configure({ minFrequency, maxFrequency, gateDb }) {
     if (minFrequency) this.minFrequency = minFrequency;
     if (maxFrequency) this.maxFrequency = maxFrequency;
-    if (Number.isFinite(gateDb)) this.gateDb = gateDb;
+    if (Number.isFinite(gateDb)) {
+      this.gateDb = gateDb;
+      this.tracker.gateRms = 10 ** (gateDb / 20);
+    }
+  }
+
+  /** A new prompt is up: see NoteTracker.arm() */
+  expectNewNote() {
+    this.tracker.arm(performance.now());
   }
 
   /**
@@ -301,6 +360,7 @@ export class PitchListener {
       time: now
     };
     const note = this.tracker.update(frame);
+    frame.ringing = this.tracker.ringing; // the last prompt's note carrying on, for a "ready" light
     this.onFrame?.(frame);
     if (note) this.onNote?.(note);
   };

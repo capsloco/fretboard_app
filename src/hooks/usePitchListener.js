@@ -2,16 +2,20 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { PitchListener, isPitchDetectionSupported } from '../lib/pitchDetection';
 import { getInstrumentFrequencyRange } from '../lib/fretLogic';
 
-/** Sensitivity 1-10 -> noise gate in dBFS (1 = only loud notes, 10 = picks up a whisper) */
+/**
+ * Sensitivity 1-10 -> noise gate in dBFS (1 = only loud notes, 10 = picks up a whisper).
+ * The default of 6 is -43 dBFS: loud enough that fret buzz and finger noise mostly stay under it.
+ */
 export function sensitivityToGateDb(sensitivity) {
-  return -25 - 4 * sensitivity;
+  return -19 - 4 * sensitivity;
 }
 
 /**
  * Runs note detection on the microphone while `enabled` is true.
  *
  * status: 'off' | 'starting' | 'listening' | 'suspended' | 'denied' | 'unavailable' | 'unsupported'
- * frame:  latest analysis frame ({ frequency, levelDb, ... }) for meters, ~30 per second
+ * frame:  latest analysis frame ({ frequency, levelDb, ringing, ... }) for meters, ~30 per second
+ * expectNewNote(): call when a new prompt appears (see NoteTracker.arm)
  */
 export function usePitchListener({ enabled, instrument, sensitivity, onNote }) {
   const [status, setStatus] = useState('off');
@@ -71,5 +75,7 @@ export function usePitchListener({ enabled, instrument, sensitivity, onNote }) {
     if (listenerRef.current) setStatus(await listenerRef.current.resume());
   }, []);
 
-  return { status, frame, gateDb, resume };
+  const expectNewNote = useCallback(() => listenerRef.current?.expectNewNote(), []);
+
+  return { status, frame, gateDb, resume, expectNewNote };
 }

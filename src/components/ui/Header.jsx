@@ -70,7 +70,7 @@ export default function Header({
           aria-label="FretLearn home"
         >
           <span className="font-script text-3xl sm:text-4xl leading-none text-stamped">FretLearn</span>
-          <span className="hidden md:inline font-display font-semibold uppercase tracking-[0.25em] text-xs opacity-80">
+          <span className="hidden md:inline font-display font-semibold uppercase tracking-[0.25em] text-xs">
             Fretboard trainer
           </span>
         </button>

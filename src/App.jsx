@@ -518,7 +518,7 @@ export default function App() {
       <footer className="footer sm:footer-horizontal items-center gap-3 px-4 py-5 sm:px-8 border-t-4 border-(--piping) bg-cabinet text-sm">
         <aside className="flex items-baseline gap-2">
           <span className="font-script text-2xl leading-none">FretLearn</span>
-          <span className="opacity-80">Free and open source.</span>
+          <span>Free and open source.</span>
         </aside>
         <nav className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-self-end">
           <a className="link link-hover" href="https://github.com/capsloco/fretboard_app" target="_blank" rel="noreferrer">Source code</a>

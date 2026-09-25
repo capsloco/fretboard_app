@@ -13,7 +13,7 @@ export const ACCURACY_RANGES = [
 // A note needs this many answers before it can be called weak or mastered
 export const MIN_ATTEMPTS_FOR_VERDICT = 3;
 export const MASTERED_ACCURACY_PCT = 85;
-const MAX_FOCUS_NOTES = 4;
+export const MAX_FOCUS_NOTES = 4;
 
 /**
  * Filter session accuracy rows down to a given range key, oldest first.
@@ -166,4 +166,56 @@ export function buildStringStats(attempts) {
       return { ...record, accuracyPct, level: masteryLevel({ attempts: record.attempts, accuracyPct }) };
     })
     .sort((a, b) => a.stringNumber - b.stringNumber || getNoteIndex(a.openNote) - getNoteIndex(b.openNote));
+}
+
+/**
+ * How one flashcard went: 'clean' (right note, first try, no peeking), 'slipped' (right note, but after a
+ * wrong note or a look at the neck) or 'missed' (time ran out, or skipped with "missed" / M).
+ */
+export function flashcardOutcome(attempt) {
+  if (!attempt.isCorrect) return 'missed';
+  return attempt.wrongNotesHeard?.length || attempt.peeked ? 'slipped' : 'clean';
+}
+
+/**
+ * Recap of a flashcard round from App's answer records, one per card that was finished.
+ * `toWorkOn` holds notes with a miss or a slip (most missed first), `solid` the notes found first try every time.
+ * `avgFindMs` is the average time to find a note, from found cards only.
+ */
+export function summarizeFlashcardRound(attempts) {
+  const counts = { clean: 0, slipped: 0, missed: 0 };
+  const findTimes = [];
+  const byNote = new Map();
+
+  attempts.forEach((a) => {
+    if (!a.targetNote) return;
+    const outcome = flashcardOutcome(a);
+    counts[outcome] += 1;
+    if (outcome !== 'missed' && a.responseTimeMs > 0) findTimes.push(a.responseTimeMs);
+
+    const pitchClass = getNoteIndex(a.targetNote);
+    const record = byNote.get(pitchClass) ?? {
+      pitchClass, note: a.targetNote, shown: 0, clean: 0, slipped: 0, missed: 0, timedOut: 0, peeked: 0, heard: []
+    };
+    record.shown += 1;
+    record[outcome] += 1;
+    if (a.inputSource === 'timeout') record.timedOut += 1;
+    if (a.peeked) record.peeked += 1;
+    (a.wrongNotesHeard ?? []).forEach((label) => {
+      if (!record.heard.includes(label)) record.heard.push(label);
+    });
+    byNote.set(pitchClass, record);
+  });
+
+  const notes = [...byNote.values()];
+  return {
+    cards: counts.clean + counts.slipped + counts.missed,
+    found: counts.clean + counts.slipped,
+    ...counts,
+    avgFindMs: findTimes.length ? Math.round(findTimes.reduce((sum, t) => sum + t, 0) / findTimes.length) : null,
+    toWorkOn: notes
+      .filter((n) => n.missed + n.slipped > 0)
+      .sort((a, b) => b.missed - a.missed || b.slipped - a.slipped || b.shown - a.shown),
+    solid: notes.filter((n) => n.clean === n.shown).sort((a, b) => a.pitchClass - b.pitchClass)
+  };
 }

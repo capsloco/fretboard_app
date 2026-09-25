@@ -6,8 +6,8 @@ A quick orientation for contributors and coding agents. For setup and features, 
 
 A fretboard trainer for guitar and bass. The app shows a note ("find C", or "find C on the A string"), the player
 plays it, and the app grades the answer by listening through the microphone. Voice commands, on-screen buttons and
-keyboard shortcuts are alternatives. Pass / fail rounds are scored and can be saved; flashcard rounds are untimed
-practice with nothing saved.
+keyboard shortcuts are alternatives. Pass / fail rounds are scored and can be saved; flashcard rounds are timed
+practice with a recap at the end and nothing saved.
 
 ## Stack
 
@@ -30,8 +30,11 @@ practice with nothing saved.
 3. `App.handleDetectedNote` grades a note with `gradeDetectedNote()`: global prompts accept any octave, string prompts
    need the exact pitch. The string's octave comes from `getStringMidis()`, which infers it from standard tuning.
 4. `answer()` records the attempt (including the detected note), updates the streak and moves to the next prompt.
+   In flashcards a wrong note keeps the card up (the note is kept in `wrongNotesHeard`), and a card that runs out of
+   time is recorded as a miss with `inputSource = 'timeout'`.
 5. `finishSession()` saves scored rounds with `recordRound()` (`lib/practiceHistory.js`): to Supabase when signed in,
-   otherwise to `localStorage`. Weak-spot rounds are saved with `session_type = 'weak_spots'`.
+   otherwise to `localStorage`. Weak-spot rounds are saved with `session_type = 'weak_spots'`. Flashcard rounds
+   aren't saved; `FlashcardSummary` recaps them with `summarizeFlashcardRound()`.
 
 ## Design system
 

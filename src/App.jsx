@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useEffectEvent, useRef, useCallback, useMemo } from 'react';
 import Header from './components/ui/Header';
 import Launchpad from './components/home/Launchpad';
 import DisplayPrompt from './components/session/DisplayPrompt';
 import Fretboard from './components/fretboard/Fretboard';
 import InputPanel from './components/session/InputPanel';
 import SessionSummary from './components/session/SessionSummary';
+import FlashcardSummary from './components/session/FlashcardSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import AuthModal from './components/ui/AuthModal';
 import LegalModal from './components/ui/LegalModal';
@@ -17,6 +18,8 @@ import { EMPTY_HISTORY, loadPracticeHistory, recordRound, withSavedRound, clearD
 import { buildNoteStats, buildNoteWeights, pickFocusNotes } from './lib/statsLogic';
 import { getInitialTheme, applyTheme } from './lib/theme';
 import { isAnalyticsEnabled } from './lib/analytics';
+import { APP_VERSION, RELEASE_DATE } from './lib/version';
+import { formatDate } from './lib/formatters';
 import { Check, X } from 'lucide-react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -90,6 +93,8 @@ export default function App() {
   // Per-attempt records for the currently running session (persisted at finishSession)
   const [attempts, setAttempts] = useState([]);
   const promptShownAtRef = useRef(null);
+  // The card on screen: wrong notes the mic heard and whether the answer was shown on the neck
+  const cardRef = useRef({ prompt: null, heard: [], peeked: false });
   // Bumped each round, so a slow save from an earlier round can't overwrite the current one's status
   const roundIdRef = useRef(0);
   const userIdRef = useRef(null);
@@ -229,6 +234,7 @@ export default function App() {
     setIsRevealed(false);
     setCurrentPrompt(prompt);
     promptShownAtRef.current = Date.now();
+    cardRef.current = { prompt, heard: [], peeked: false };
     setTimeLeft(sessionMode === 'flashcard' ? config.flashcardSecondsPerNote : null);
   }, [config.sessionMode, config.flashcardSecondsPerNote]);
 
@@ -271,9 +277,11 @@ export default function App() {
     return () => clearInterval(tick);
   }, [sessionState, config.sessionMode, currentPrompt]);
 
+  // A card that runs out of time is a miss
+  const timeOutCard = useEffectEvent(() => answer(false, 'timeout'));
   useEffect(() => {
-    if (timeLeft === 0) nextPrompt();
-  }, [timeLeft, nextPrompt]);
+    if (timeLeft === 0 && sessionState === 'running') timeOutCard();
+  }, [timeLeft, sessionState]);
 
   useEffect(() => {
     if (sessionState !== 'running' || config.sessionMode !== 'flashcard') return undefined;
@@ -286,9 +294,13 @@ export default function App() {
 
   /**
    * Score the current prompt and move on.
+   * @param source 'mic' | 'voice' | 'keyboard' | 'button', or 'timeout' when a flashcard ran out of time
    * @param detected note heard by the mic ({ name, octave, frequency }), if any
    */
   const answer = (isCorrect, source, detected = null) => {
+    const card = cardRef.current;
+    // Already answered: a right note and the timer ran out at the same moment
+    if (card.prompt !== currentPrompt) return;
     const responseTimeMs = promptShownAtRef.current ? Date.now() - promptShownAtRef.current : null;
     setAttempts(prev => [...prev, {
       targetNote: currentPrompt?.note,
@@ -301,7 +313,9 @@ export default function App() {
       inputSource: source,
       detectedNote: detected?.name ?? null,
       detectedOctave: detected?.octave ?? null,
-      detectedFrequencyHz: detected ? Math.round(detected.frequency * 100) / 100 : null
+      detectedFrequencyHz: detected ? Math.round(detected.frequency * 100) / 100 : null,
+      wrongNotesHeard: card.heard,
+      peeked: card.peeked
     }]);
 
     setStats(prev => {
@@ -320,7 +334,8 @@ export default function App() {
       correct: isCorrect,
       target: currentPrompt?.note,
       heard: detected ? `${detected.name}${detected.octave}` : null,
-      wrongOctave: Boolean(detected?.wrongOctave)
+      wrongOctave: Boolean(detected?.wrongOctave),
+      timedOut: source === 'timeout'
     }));
 
     nextPrompt();
@@ -339,12 +354,15 @@ export default function App() {
     } else if (config.sessionMode === 'tracked') {
       answer(false, 'mic', detected);
     } else {
-      // Flashcards don't penalise: just say what was heard
+      // Flashcards keep the card up: note what was heard and let them keep looking
+      const label = `${heard.name}${heard.octave}`;
+      if (!cardRef.current.heard.includes(label)) cardRef.current.heard = [...cardRef.current.heard, label];
       setLastResult(prev => ({
         id: (prev?.id ?? 0) + 1,
         correct: false,
+        retry: true,
         target: currentPrompt.note,
-        heard: `${heard.name}${heard.octave}`,
+        heard: label,
         wrongOctave: detected.wrongOctave
       }));
     }
@@ -431,25 +449,39 @@ export default function App() {
           />
         ) : sessionState === 'summary' ? (
           <div className="my-auto py-4">
-            <SessionSummary
-              stats={{
-                ...stats,
-                accuracyPct: stats.totalPrompts > 0 ? Math.round((stats.correctCount / stats.totalPrompts) * 100) : 0,
-                durationSeconds: sessionDurationSecs,
-                instrumentTitle: currentInstrument.title,
-                sessionType: config.sessionMode
-              }}
-              attempts={attempts}
-              isWeakSpotRound={Boolean(roundFocus)}
-              saveStatus={saveStatus}
-              onRestart={() => startNewSession(roundFocus)}
-              onPractiseNotes={startWeakSpotRound}
-              onOpenAuth={isSupabaseConfigured ? () => setIsAuthOpen(true) : undefined}
-              onOpenSettings={() => {
-                setSessionState('idle');
-                setIsSettingsOpen(true);
-              }}
-            />
+            {config.sessionMode === 'flashcard' && !roundFocus ? (
+              <FlashcardSummary
+                attempts={attempts}
+                durationSeconds={sessionDurationSecs}
+                instrumentTitle={currentInstrument.title}
+                onRestart={() => startNewSession()}
+                onPractiseNotes={startWeakSpotRound}
+                onOpenSettings={() => {
+                  setSessionState('idle');
+                  setIsSettingsOpen(true);
+                }}
+              />
+            ) : (
+              <SessionSummary
+                stats={{
+                  ...stats,
+                  accuracyPct: stats.totalPrompts > 0 ? Math.round((stats.correctCount / stats.totalPrompts) * 100) : 0,
+                  durationSeconds: sessionDurationSecs,
+                  instrumentTitle: currentInstrument.title,
+                  sessionType: config.sessionMode
+                }}
+                attempts={attempts}
+                isWeakSpotRound={Boolean(roundFocus)}
+                saveStatus={saveStatus}
+                onRestart={() => startNewSession(roundFocus)}
+                onPractiseNotes={startWeakSpotRound}
+                onOpenAuth={isSupabaseConfigured ? () => setIsAuthOpen(true) : undefined}
+                onOpenSettings={() => {
+                  setSessionState('idle');
+                  setIsSettingsOpen(true);
+                }}
+              />
+            )}
           </div>
         ) : sessionState === 'history' ? (
           <HistoryStatsScreen
@@ -489,7 +521,10 @@ export default function App() {
               timeLeft={timeLeft}
               secondsPerNote={config.flashcardSecondsPerNote}
               isRevealed={isRevealed}
-              onRevealToggle={() => setIsRevealed(!isRevealed)}
+              onRevealToggle={() => {
+                if (!isRevealed) cardRef.current.peeked = true;
+                setIsRevealed(!isRevealed);
+              }}
               stats={stats}
               lastResult={lastResult}
             />
@@ -530,6 +565,10 @@ export default function App() {
         <aside className="flex items-baseline gap-2">
           <span className="font-script text-2xl leading-none">FretLearn</span>
           <span>Free and open source.</span>
+          {/* Read the date as local midnight, so it doesn't show the day before west of UTC */}
+          <span className="text-xs tabular-nums">
+            v{APP_VERSION} · <time dateTime={RELEASE_DATE}>{formatDate(`${RELEASE_DATE}T00:00`)}</time>
+          </span>
         </aside>
         <nav className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-self-end">
           <a className="link link-hover" href="https://github.com/capsloco/fretboard_app" target="_blank" rel="noreferrer">Source code</a>

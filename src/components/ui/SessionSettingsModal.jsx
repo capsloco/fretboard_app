@@ -102,7 +102,7 @@ export default function SessionSettingsModal({
                   Every answer is scored. Accuracy, streaks and weak notes are saved to your stats.
                 </OptionCard>
                 <OptionCard selected={config.sessionMode === 'flashcard'} onSelect={() => onChangeConfig('sessionMode', 'flashcard')} title="Flashcards">
-                  Notes change on a timer. Nothing is scored or saved. Good for warming up.
+                  Notes change on a timer, with a recap of what you found and missed at the end. Nothing is saved to your stats. Good for warming up.
                 </OptionCard>
               </div>
             </fieldset>

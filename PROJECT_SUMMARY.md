@@ -19,7 +19,9 @@ practice with nothing saved.
 
 ## How a round works
 
-1. `App.jsx` generates a prompt with `generatePrompt()` (only notes with a position in the fret range).
+1. `App.jsx` generates a prompt with `generatePrompt()` (only notes with a position in the fret range). Adaptive
+   rounds pass `noteWeights` from `buildNoteWeights()` so missed notes come up more often; weak-spot rounds pass
+   `focusNotes` (pitch classes) to limit the pool.
 2. `InputPanel` owns the answer input for the chosen mode:
    - **Mic**: `usePitchListener` runs `PitchListener` (`lib/pitchDetection.js`): YIN pitch detection on the raw mic
      signal, then `NoteTracker` turns steady pitches into note events.
@@ -28,7 +30,8 @@ practice with nothing saved.
 3. `App.handleDetectedNote` grades a note with `gradeDetectedNote()`: global prompts accept any octave, string prompts
    need the exact pitch. The string's octave comes from `getStringMidis()`, which infers it from standard tuning.
 4. `answer()` records the attempt (including the detected note), updates the streak and moves to the next prompt.
-5. `finishSession()` saves the round and its attempts to Supabase when signed in.
+5. `finishSession()` saves scored rounds with `recordRound()` (`lib/practiceHistory.js`): to Supabase when signed in,
+   otherwise to `localStorage`. Weak-spot rounds are saved with `session_type = 'weak_spots'`.
 
 ## Design system
 
@@ -43,9 +46,15 @@ self-hosted: Yellowtail (wordmark), Barlow Condensed (display and labels), Barlo
 
 ## Data
 
-`supabase/migrations/0001_practice_tracking.sql` defines `practice_sessions` and `practice_attempts`. Attempts from the
-mic fill `detected_note`, `detected_octave` and `detected_frequency_hz`. Settings sync through Supabase user metadata.
-Migrations are run by hand in the Supabase SQL editor.
+`supabase/migrations/0001_practice_tracking.sql` defines `practice_sessions` and `practice_attempts`;
+`0002_custom_instruments.sql` defines `custom_instruments`. Attempts from the mic fill `detected_note`,
+`detected_octave` and `detected_frequency_hz`. Settings sync through Supabase user metadata. Migrations are run by
+hand in the Supabase SQL editor.
+
+Stats work the same with or without an account. `loadPracticeHistory()` returns every saved round and the most recent
+2,000 answers, from Supabase (read in 1,000-row pages) or from `localStorage` (capped at 1,000 rounds and 5,000
+answers). The stats screen derives everything from that with the pure functions in `lib/statsLogic.js`, which group
+notes by pitch class so C# and D♭ share a record.
 
 ## Deployment
 

@@ -118,7 +118,7 @@ export async function saveCustomInstrument(instrument, userId = null) {
       ])
       .select();
     
-    if (!error && data) return data[0];
+    if (!error && data?.[0]) return mapCustomInstrumentRow(data[0]);
   }
 
   // Fallback to LocalStorage
@@ -150,13 +150,7 @@ export async function loadCustomInstruments(userId = null) {
       .order('created_at', { ascending: false });
     
     if (!error && data && data.length > 0) {
-      return data.map(item => ({
-        id: item.id,
-        title: item.title,
-        stringCount: item.string_count,
-        fretCount: item.fret_count,
-        tuning: item.tuning
-      }));
+      return data.map(mapCustomInstrumentRow);
     }
   }
 
@@ -230,95 +224,82 @@ export async function savePracticeAttempts(sessionId, attempts, userId = null) {
   return true;
 }
 
-export async function getSessionHistory(userId, { page = 0, pageSize = 20 } = {}) {
-  if (!supabase || !userId) return { sessions: [], hasMore: false };
+// Supabase returns at most 1,000 rows per request (its default max-rows), so longer lists are read in pages
+const SUPABASE_PAGE_SIZE = 1000;
 
-  const from = page * pageSize;
-  const to = from + pageSize; // fetch one extra row to detect hasMore without a count query
+/**
+ * Read a newest-first query in pages. Later pages are pinned to rows no newer than the
+ * first page's newest, so a round saved elsewhere mid-read can't shift rows into two pages.
+ */
+async function fetchInPages(buildQuery, maxRows = Infinity) {
+  const rows = [];
+  let newest = null;
+  for (let from = 0; from < maxRows; from += SUPABASE_PAGE_SIZE) {
+    const to = Math.min(from + SUPABASE_PAGE_SIZE, maxRows) - 1;
+    const query = newest ? buildQuery().lte('created_at', newest) : buildQuery();
+    const { data, error } = await query.range(from, to);
+    if (error || !data) {
+      console.error('Error fetching practice history:', error);
+      return null;
+    }
+    rows.push(...data);
+    newest ??= data[0]?.created_at ?? null;
+    if (data.length < to - from + 1) break;
+  }
+  return rows;
+}
 
-  const { data, error } = await supabase
+/**
+ * Every saved round for a user, newest first. Returns null if the request failed.
+ */
+export async function getPracticeSessions(userId) {
+  if (!supabase || !userId) return [];
+
+  const rows = await fetchInPages(() => supabase
     .from('practice_sessions')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .range(from, to);
+    .order('id'));
 
-  if (error || !data) {
-    console.error('Error fetching session history:', error);
-    return { sessions: [], hasMore: false };
-  }
-
-  const hasMore = data.length > pageSize;
-  const rows = hasMore ? data.slice(0, pageSize) : data;
-
-  return {
-    sessions: rows.map(mapSessionRow),
-    hasMore
-  };
+  return rows && rows.map(mapSessionRow);
 }
 
-export async function getLifetimeStats(userId) {
-  const empty = { totalSessions: 0, totalPracticeSeconds: 0, lifetimeAccuracyPct: 0, bestStreak: 0, firstSessionDate: null };
-  if (!supabase || !userId) return empty;
-
-  const { data, error } = await supabase
-    .from('practice_sessions')
-    .select('total_prompts, correct_count, duration_seconds, best_streak, created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
-
-  if (error || !data || data.length === 0) return empty;
-
-  const totalPrompts = data.reduce((sum, s) => sum + (s.total_prompts || 0), 0);
-  const totalCorrect = data.reduce((sum, s) => sum + (s.correct_count || 0), 0);
-  const totalPracticeSeconds = data.reduce((sum, s) => sum + (s.duration_seconds || 0), 0);
-  const bestStreak = data.reduce((max, s) => Math.max(max, s.best_streak || 0), 0);
-
-  return {
-    totalSessions: data.length,
-    totalPracticeSeconds,
-    lifetimeAccuracyPct: totalPrompts > 0 ? Math.round((totalCorrect / totalPrompts) * 100) : 0,
-    bestStreak,
-    firstSessionDate: data[0].created_at
-  };
-}
-
-export async function getAccuracyOverTime(userId) {
+/**
+ * A user's most recent answers, newest first. Returns null if the request failed.
+ */
+export async function getRecentAttempts(userId, limit) {
   if (!supabase || !userId) return [];
 
-  const { data, error } = await supabase
-    .from('practice_sessions')
-    .select('created_at, accuracy_pct, total_prompts, correct_count')
+  const rows = await fetchInPages(() => supabase
+    .from('practice_attempts')
+    .select('session_id, target_note, prompt_type, string_index, string_display_number, string_open_note, is_correct, response_time_ms, input_source, created_at')
     .eq('user_id', userId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false })
+    .order('id'), limit);
 
-  if (error || !data) {
-    console.error('Error fetching accuracy history:', error);
-    return [];
-  }
-
-  return data.map((s) => ({
-    createdAt: s.created_at,
-    accuracyPct: s.accuracy_pct,
-    totalPrompts: s.total_prompts,
-    correctCount: s.correct_count
+  return rows && rows.map((a) => ({
+    sessionId: a.session_id,
+    note: a.target_note,
+    promptType: a.prompt_type,
+    stringIndex: a.string_index,
+    stringDisplayNumber: a.string_display_number,
+    stringOpenNote: a.string_open_note,
+    isCorrect: a.is_correct,
+    responseTimeMs: a.response_time_ms,
+    inputSource: a.input_source,
+    createdAt: a.created_at
   }));
 }
 
-export async function getWeakNotes(userId) {
-  if (!supabase || !userId) return [];
-
-  const { data, error } = await supabase
-    .from('practice_attempts')
-    .select('target_note, is_correct')
-    .eq('user_id', userId);
-
-  if (error || !data) {
-    console.error('Error fetching attempt history:', error);
-    return [];
-  }
-
-  return data.map((a) => ({ note: a.target_note, isCorrect: a.is_correct }));
+function mapCustomInstrumentRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    stringCount: row.string_count,
+    fretCount: row.fret_count,
+    tuning: row.tuning
+  };
 }
 
 function mapSessionRow(row) {
@@ -330,7 +311,7 @@ function mapSessionRow(row) {
     totalPrompts: row.total_prompts,
     correctCount: row.correct_count,
     incorrectCount: row.incorrect_count,
-    accuracyPct: row.accuracy_pct,
+    accuracyPct: Number(row.accuracy_pct),
     durationSeconds: row.duration_seconds,
     bestStreak: row.best_streak,
     instrumentId: row.instrument_id,

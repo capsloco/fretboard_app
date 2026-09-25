@@ -16,7 +16,10 @@ Free, open source, and runs entirely in the browser. Live at [fretlearn.app](htt
 - **Any instrument you tune.** 6- and 7-string guitar, 4- and 5-string bass, drop, open and modal tunings, or build your
   own with 4–8 strings and 12–24 frets.
 - **Shows you the answer.** A fretboard with real string gauges and inlays lights up every position of the note.
-- **Tracks progress.** Accuracy over time, best streaks and the notes you miss most (with a free account).
+- **Tracks progress, no account needed.** Accuracy over time, a note-by-note grid of what you know, accuracy per
+  string and your weak spots. Stats are kept on your device, or in your account when you sign in.
+- **Drills your weak spots.** One tap starts a round on the notes you miss most (or the ones you just missed), and
+  normal rounds bring missed notes back more often. You can turn that off in Settings.
 - **Other ways to answer.** Say "got it" or "missed", tap the buttons, or use Space and M (Bluetooth page-turner
   pedals work too).
 - **Day and night themes.** Tweed (aged cream lacquer) and Tolex (black amp covering).
@@ -73,12 +76,12 @@ phone or another device on your network needs HTTPS.
 
 ### Configuration
 
-Everything works without configuration: settings and custom instruments are kept in `localStorage`. Copy
+Everything works without configuration: settings, custom instruments and practice stats are kept in `localStorage`. Copy
 `.env.example` to `.env.local` to turn on the optional services.
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Accounts (Google, email link, password), cloud sync and practice history via [Supabase](https://supabase.com). Run [`supabase/migrations/0001_practice_tracking.sql`](supabase/migrations/0001_practice_tracking.sql) in the Supabase SQL editor once. |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Accounts (Google, email link, password), cloud sync and practice history via [Supabase](https://supabase.com). Run the files in [`supabase/migrations/`](supabase/migrations/) in order in the Supabase SQL editor once. |
 | `VITE_GTM_ID` | Google Tag Manager container ID. Unset means no analytics and no cookie banner. |
 
 ## Tech
@@ -99,6 +102,8 @@ src/
   lib/
     pitchDetection.js      YIN, note tracker, microphone listener
     fretLogic.js           notes, tunings, prompts, grading
+    statsLogic.js          note, string and round stats; weak spots; adaptive weights
+    practiceHistory.js     saved rounds (account or this device)
     voice.js               voice commands
     supabase.js            accounts and storage (with localStorage fallback)
     analytics.js           optional Google Tag Manager

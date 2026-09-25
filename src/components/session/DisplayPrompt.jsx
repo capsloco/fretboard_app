@@ -26,6 +26,7 @@ function Feedback({ result }) {
 export default function DisplayPrompt({
   prompt,
   sessionMode, // 'tracked' | 'flashcard'
+  isWeakSpotRound = false,
   timeLeft,
   secondsPerNote,
   isRevealed,
@@ -43,7 +44,7 @@ export default function DisplayPrompt({
       <div className="rounded-[calc(var(--radius-box)-0.25rem)] border-4 border-double border-base-300 px-4 py-4 sm:px-8 sm:py-6 flex flex-col items-center text-center">
         {/* Round readout */}
         <div className="w-full flex items-center justify-between font-display text-xs sm:text-sm uppercase tracking-[0.2em]">
-          <span className="opacity-70">{sessionMode === 'tracked' ? 'Pass / Fail' : 'Flashcards'}</span>
+          <span className="opacity-70">{isWeakSpotRound ? 'Weak spots' : sessionMode === 'tracked' ? 'Pass / Fail' : 'Flashcards'}</span>
           {sessionMode === 'tracked' ? (
             <span className="flex items-center gap-3">
               {stats.currentStreak > 1 && <span className="badge badge-sm badge-secondary tracking-wider">Streak {stats.currentStreak}</span>}

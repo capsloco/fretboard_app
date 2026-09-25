@@ -18,6 +18,8 @@ import { EMPTY_HISTORY, loadPracticeHistory, recordRound, withSavedRound, clearD
 import { buildNoteStats, buildNoteWeights, pickFocusNotes } from './lib/statsLogic';
 import { getInitialTheme, applyTheme } from './lib/theme';
 import { isAnalyticsEnabled } from './lib/analytics';
+import { APP_VERSION, RELEASE_DATE } from './lib/version';
+import { formatDate } from './lib/formatters';
 import { Check, X } from 'lucide-react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -563,6 +565,10 @@ export default function App() {
         <aside className="flex items-baseline gap-2">
           <span className="font-script text-2xl leading-none">FretLearn</span>
           <span>Free and open source.</span>
+          {/* Read the date as local midnight, so it doesn't show the day before west of UTC */}
+          <span className="text-xs tabular-nums">
+            v{APP_VERSION} · <time dateTime={RELEASE_DATE}>{formatDate(`${RELEASE_DATE}T00:00`)}</time>
+          </span>
         </aside>
         <nav className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-self-end">
           <a className="link link-hover" href="https://github.com/capsloco/fretboard_app" target="_blank" rel="noreferrer">Source code</a>

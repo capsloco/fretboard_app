@@ -1,7 +1,7 @@
 {
   "name": "fretlearn",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.26.0",
   "description": "Learn every note on the guitar or bass neck. FretLearn listens to what you play and scores every answer.",
   "license": "MIT",
   "repository": {

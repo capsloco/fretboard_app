@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, Speech, Keyboard, HelpCircle, Flag } from 'lucide-react';
+import { Mic, Speech, Keyboard, HelpCircle, Flag, Volume2 } from 'lucide-react';
 import NoteMeter from './NoteMeter';
 import InputHelpDialog from './InputHelpDialog';
 import { usePitchListener } from '../../hooks/usePitchListener';
@@ -18,6 +18,16 @@ const MIC_MESSAGES = {
   unavailable: 'No microphone found. Plug one in, or switch to Voice or Manual.',
   unsupported: 'This browser can’t listen to the mic. Try Chrome, Edge, Firefox or Safari.'
 };
+
+const HIDE_QUIET_TIP_KEY = 'fretlearn_hide_quiet_tip';
+
+function quietTipHidden() {
+  try {
+    return localStorage.getItem(HIDE_QUIET_TIP_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 const VOICE_ERRORS = {
   'not-allowed': 'The mic is blocked for voice commands. Allow it in your browser’s site settings.',
@@ -61,6 +71,8 @@ export default function InputPanel({
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
   const [lastHeard, setLastHeard] = useState(null);
+  // Shown when a round starts with the mic, until dismissed
+  const [showQuietTip, setShowQuietTip] = useState(() => mode === 'mic' && !quietTipHidden());
   const speechSupported = isSpeechRecognitionSupported();
 
   useEffect(() => {
@@ -125,7 +137,17 @@ export default function InputPanel({
 
   const lampOn = (mode === 'mic' && status === 'listening') || (mode === 'voice' && voiceListening);
 
+  const hideQuietTipForGood = () => {
+    try {
+      localStorage.setItem(HIDE_QUIET_TIP_KEY, '1');
+    } catch {
+      // can't remember it; hide it for this round anyway
+    }
+    setShowQuietTip(false);
+  };
+
   return (
+    <>
     <section
       aria-label="Answer input"
       className="bg-plate border rounded-box shadow-md px-3 py-3 sm:px-4 flex flex-col sm:flex-row sm:items-center gap-3"
@@ -231,5 +253,24 @@ export default function InputPanel({
 
       <InputHelpDialog ref={helpRef} />
     </section>
+
+    {showQuietTip && mode === 'mic' && (
+      <div role="note" className="alert w-full max-w-3xl mx-auto bg-base-100 border-base-300 flex flex-col sm:flex-row items-start sm:items-center">
+        <Volume2 className="size-6 shrink-0 text-secondary hidden sm:block" aria-hidden="true" />
+        <div className="flex-1">
+          <p className="font-display font-bold uppercase tracking-wider">Works best in a quiet room</p>
+          <p className="text-sm">
+            Your instrument should be the only sound the mic hears. Other sounds, like a TV, music or a lawnmower
+            outside, can be heard as notes. If that happens, find a quieter spot, turn the sensitivity down or switch
+            to Manual.
+          </p>
+        </div>
+        <div className="flex gap-2 self-end sm:self-center">
+          <button type="button" onClick={hideQuietTipForGood} className="btn btn-sm btn-ghost">Don’t show again</button>
+          <button type="button" onClick={() => setShowQuietTip(false)} className="btn btn-sm btn-primary">Got it</button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -4,6 +4,7 @@ import Modal from './Modal';
 import InstrumentBuilder from '../settings/InstrumentBuilder';
 import FretRangeSlider from './FretRangeSlider';
 import { THEMES } from '../../lib/theme';
+import { getStringName } from '../../lib/fretLogic';
 
 const TABS = [
   { id: 'practice', label: 'Practice' },
@@ -203,6 +204,47 @@ export default function SessionSettingsModal({
                 </label>
               </fieldset>
             </div>
+
+            {config.promptType === 'string_specific' && currentInstrument?.tuning && (
+              <fieldset className="fieldset">
+                <legend className={legendClass}>Which string</legend>
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Which string">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={config.promptStringIndex == null}
+                    onClick={() => onChangeConfig('promptStringIndex', null)}
+                    className={`btn btn-sm font-display uppercase tracking-wider ${config.promptStringIndex == null ? 'btn-neutral' : ''}`}
+                  >
+                    Any string
+                  </button>
+                  {currentInstrument.tuning.map((_, index) => {
+                    const name = getStringName(currentInstrument.tuning, index);
+                    const number = currentInstrument.tuning.length - index;
+                    const selected = config.promptStringIndex === index;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={`String ${number}, ${name}`}
+                        onClick={() => onChangeConfig('promptStringIndex', index)}
+                        className={`btn btn-sm font-display tracking-wider ${selected ? 'btn-neutral' : ''}`}
+                      >
+                        <span className="normal-case">{name[0].toUpperCase() + name.slice(1)}</span>
+                        <span className="text-xs opacity-70 tabular-nums">{number}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="label whitespace-normal">
+                  {config.promptStringIndex == null
+                    ? 'Each prompt picks a string at random.'
+                    : `Every prompt is on the ${getStringName(currentInstrument.tuning, config.promptStringIndex)} string. Good for learning one string at a time.`}
+                </p>
+              </fieldset>
+            )}
 
             <fieldset className="fieldset">
               <legend className={legendClass}>Weak notes</legend>

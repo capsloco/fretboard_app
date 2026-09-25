@@ -6,7 +6,9 @@ import {
   getNoteIndex,
   getStringMidis,
   gradeDetectedNote,
-  midiToNoteLabel
+  midiToNoteLabel,
+  nearestStringIndex,
+  getStringName
 } from './fretLogic';
 
 // 'E♭2' -> 39, 'F♯3' -> 54
@@ -84,5 +86,54 @@ describe('generatePrompt', () => {
       const prompt = generatePrompt({ instrument: guitar, previousNote: 'C' });
       expect(prompt.note).not.toBe('C');
     }
+  });
+});
+
+describe('nearestStringIndex', () => {
+  const strings = getStringMidis(guitar); // E2 A2 D3 G3 B3 E4
+
+  it('picks the string a note is closest to, even when it is well out of tune', () => {
+    expect(nearestStringIndex(40.3, strings)).toBe(0); // E2, a bit sharp
+    expect(nearestStringIndex(43.4, strings)).toBe(1); // nearer A2 than E2
+    expect(nearestStringIndex(63.2, strings)).toBe(5); // E4, a bit flat
+    expect(nearestStringIndex(59, strings)).toBe(4);
+  });
+});
+
+describe('string prompts', () => {
+  it('names strings that share a note by low / middle / high', () => {
+    const standard = ['E', 'A', 'D', 'G', 'B', 'E'];
+    expect(standard.map((_, i) => getStringName(standard, i))).toEqual(['low E', 'A', 'D', 'G', 'B', 'high E']);
+    const dadgad = ['D', 'A', 'D', 'G', 'A', 'D'];
+    expect(dadgad.map((_, i) => getStringName(dadgad, i))).toEqual(['low D', 'low A', 'middle D', 'G', 'high A', 'high D']);
+    expect(getStringName(['E', 'A', 'D', 'G'], 0)).toBe('E');
+  });
+
+  it('says which E string the prompt means', () => {
+    for (let i = 0; i < 30; i++) {
+      const prompt = generatePrompt({ instrument: guitar, promptType: 'string_specific', stringIndex: 5 });
+      expect(prompt.promptText).toBe('on the high E string');
+    }
+  });
+
+  it('keeps to a chosen string, with every note on it inside the fret range', () => {
+    for (let i = 0; i < 50; i++) {
+      const prompt = generatePrompt({ instrument: guitar, promptType: 'string_specific', stringIndex: 1, minFret: 0, maxFret: 5, includeAccidentals: true });
+      expect(prompt.stringIndex).toBe(1);
+      expect(prompt.targetFrets.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('falls back to any string when the chosen one has none of the notes in range', () => {
+    // Frets 0-1 on the A string only reach A and A#; a C drill has to use another string
+    const prompt = generatePrompt({ instrument: guitar, promptType: 'string_specific', stringIndex: 1, minFret: 0, maxFret: 1, focusNotes: [0] });
+    expect(prompt.note).toBe('C');
+    expect(prompt.stringIndex).toBe(4); // B string, fret 1
+  });
+
+  it('ignores a chosen string that the instrument does not have', () => {
+    const bass = INSTRUMENT_PRESETS.find(i => i.id === 'bass_standard');
+    const prompt = generatePrompt({ instrument: bass, promptType: 'string_specific', stringIndex: 5 });
+    expect(prompt.stringIndex).toBeLessThan(4);
   });
 });

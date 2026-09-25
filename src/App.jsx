@@ -10,6 +10,7 @@ import AuthModal from './components/ui/AuthModal';
 import LegalModal from './components/ui/LegalModal';
 import CookieConsentBanner from './components/ui/CookieConsentBanner';
 import HistoryStatsScreen from './components/history/HistoryStatsScreen';
+import TunerModal from './components/tuner/TunerModal';
 import { generatePrompt, gradeDetectedNote, midiToNoteLabel, findNotePositionsOnNeck, formatNoteName, INSTRUMENT_PRESETS } from './lib/fretLogic';
 import { isSupabaseConfigured, loadCustomInstruments, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { EMPTY_HISTORY, loadPracticeHistory, recordRound, withSavedRound, clearDeviceHistory } from './lib/practiceHistory';
@@ -44,6 +45,7 @@ export default function App() {
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState('privacy');
   const [isCookieConsentOpen, setIsCookieConsentOpen] = useState(false);
+  const [isTunerOpen, setIsTunerOpen] = useState(false);
 
   // Appearance
   const [currentTheme, setCurrentTheme] = useState(getInitialTheme);
@@ -56,6 +58,7 @@ export default function App() {
   const [config, setConfig] = useState({
     sessionMode: 'tracked', // 'tracked' | 'flashcard'
     promptType: 'global', // 'global' | 'string_specific'
+    promptStringIndex: null, // string prompts: a fixed string (0 = lowest), or null for any string
     includeAccidentals: false,
     noteDisplay: 'sharps', // 'sharps' | 'both' | 'flats'
     minFret: 0,
@@ -197,7 +200,13 @@ export default function App() {
   const handleInstrumentSelect = (inst) => {
     // Keep the fret range on the new neck, and save config + instrument together
     const maxFret = Math.min(config.maxFret, inst.fretCount || 24);
-    const updatedConfig = { ...config, maxFret, minFret: Math.min(config.minFret, maxFret) };
+    const updatedConfig = {
+      ...config,
+      maxFret,
+      minFret: Math.min(config.minFret, maxFret),
+      // A chosen string the new instrument doesn't have goes back to "any string"
+      promptStringIndex: config.promptStringIndex < inst.tuning.length ? config.promptStringIndex : null
+    };
     setCurrentInstrument(inst);
     setConfig(updatedConfig);
     saveSettingsToStorage(updatedConfig, inst);
@@ -212,8 +221,9 @@ export default function App() {
     noteDisplay,
     previousNote,
     focusNotes,
-    noteWeights
-  }), [config.promptType, config.includeAccidentals, config.minFret, config.maxFret, currentInstrument, noteDisplay, roundFocus, noteWeights]);
+    noteWeights,
+    stringIndex: config.promptStringIndex
+  }), [config.promptType, config.promptStringIndex, config.includeAccidentals, config.minFret, config.maxFret, currentInstrument, noteDisplay, roundFocus, noteWeights]);
 
   const showPrompt = useCallback((prompt, sessionMode = config.sessionMode) => {
     setIsRevealed(false);
@@ -415,6 +425,7 @@ export default function App() {
             onChangeConfig={handleConfigChange}
             onStart={() => startNewSession()}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenTuner={() => setIsTunerOpen(true)}
             weakSpots={weakSpots}
             onPractiseWeakSpots={() => startWeakSpotRound(weakSpots.map(n => n.pitchClass))}
           />
@@ -544,6 +555,14 @@ export default function App() {
         onStartSession={() => startNewSession()}
         currentTheme={currentTheme}
         onChangeTheme={setCurrentTheme}
+      />
+
+      <TunerModal
+        isOpen={isTunerOpen}
+        onClose={() => setIsTunerOpen(false)}
+        instrument={currentInstrument}
+        sensitivity={config.micSensitivity}
+        noteDisplay={noteDisplay}
       />
 
       <AuthModal

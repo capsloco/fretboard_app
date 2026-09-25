@@ -8,7 +8,7 @@ import {
   getStringMidis,
   midiToFrequency,
   midiToNoteLabel,
-  nearestStringIndex,
+  readTuner,
   findMatchingTuningPreset
 } from '../../lib/fretLogic';
 
@@ -40,9 +40,14 @@ function Tuner({ instrument, sensitivity, noteDisplay }) {
 
   const frequency = frame?.frequency ?? frame?.heldFrequency ?? null;
   const midiFloat = frequency ? frequencyToMidi(frequency) : null;
-  const targetIndex = chosenString ?? (midiFloat === null ? null : nearestStringIndex(midiFloat, stringMidis));
+  const reading = midiFloat === null ? null : readTuner(midiFloat, stringMidis, chosenString);
+  const targetIndex = chosenString ?? reading?.stringIndex ?? null;
   const targetMidi = targetIndex === null ? null : stringMidis[targetIndex];
-  const cents = midiFloat !== null && targetMidi !== null ? Math.round((midiFloat - targetMidi) * 100) : null;
+  const cents = reading?.cents ?? null;
+  // Heard an octave high: show the meter the string's real octave, so the dial matches the words
+  const meterFrame = reading?.octaveSlip
+    ? { ...frame, frequency: frame.frequency && frame.frequency / 2, heldFrequency: frame.heldFrequency && frame.heldFrequency / 2 }
+    : frame;
   const verdict = verdictFor(cents);
 
   const label = (midi) => midiToNoteLabel(midi, noteDisplay);
@@ -53,7 +58,7 @@ function Tuner({ instrument, sensitivity, noteDisplay }) {
   return (
     <div className="flex flex-col items-center gap-4">
       <NoteMeter
-        frame={frame}
+        frame={meterFrame}
         gateDb={gateDb}
         noteDisplay={noteDisplay}
         targetMidi={targetMidi}

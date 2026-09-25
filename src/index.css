@@ -94,11 +94,12 @@
 @layer base {
   :root,
   [data-theme="tweed"] {
-    --cabinet-color: #c8a46a;
+    /* Weave kept soft so ink text stays at 5:1 or better on its darkest stripe */
+    --cabinet-color: #d2b078;
     --cabinet-pattern:
-      repeating-linear-gradient(135deg, rgb(92 58 28 / 0.5) 0 1.5px, transparent 1.5px 4px),
-      repeating-linear-gradient(45deg, rgb(255 236 190 / 0.35) 0 1px, transparent 1px 3px),
-      linear-gradient(180deg, rgb(255 244 214 / 0.25), rgb(80 50 20 / 0.3));
+      repeating-linear-gradient(135deg, rgb(92 58 28 / 0.2) 0 1.5px, transparent 1.5px 4px),
+      repeating-linear-gradient(45deg, rgb(255 236 190 / 0.25) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg, rgb(255 244 214 / 0.25), rgb(80 50 20 / 0.1));
     --cabinet-size: auto;
     --cabinet-ink: #2b1d12;
     --piping: #5a2420;

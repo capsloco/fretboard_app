@@ -1,29 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-
-const CONSENT_KEY = 'fretlearn_cookie_consent';
-
-function updateGoogleConsent(isGranted) {
-  window.dataLayer = window.dataLayer || [];
-  // gtag() must push the `arguments` object itself; GTM ignores plain arrays for consent commands
-  function gtag() {
-    window.dataLayer.push(arguments);
-  }
-  gtag('consent', 'update', {
-    analytics_storage: isGranted ? 'granted' : 'denied',
-    ad_storage: 'denied',
-    ad_user_data: 'denied',
-    ad_personalization: 'denied'
-  });
-}
-
-function readConsent() {
-  try {
-    return localStorage.getItem(CONSENT_KEY); // 'granted' | 'denied' | null
-  } catch {
-    return null;
-  }
-}
+import { isAnalyticsEnabled, readConsent, setConsent } from '../../lib/analytics';
 
 export default function CookieConsentBanner({ isOpen, onClose, onOpenLegal }) {
   const [consentStatus, setConsentStatus] = useState(readConsent);
@@ -44,19 +21,14 @@ export default function CookieConsentBanner({ isOpen, onClose, onOpenLegal }) {
   }, [consentStatus, isOpen]);
 
   const choose = (granted) => {
-    const value = granted ? 'granted' : 'denied';
-    try {
-      localStorage.setItem(CONSENT_KEY, value);
-    } catch {
-      // not persisted; the choice still applies for this visit
-    }
-    setConsentStatus(value);
-    updateGoogleConsent(granted);
+    setConsent(granted);
+    setConsentStatus(granted ? 'granted' : 'denied');
     setIsVisible(false);
     onClose?.();
   };
 
-  if (!isVisible) return null;
+  // No analytics configured (e.g. a fork or local build): nothing to consent to
+  if (!isAnalyticsEnabled || !isVisible) return null;
 
   return (
     <aside aria-label="Cookie preferences" className="fixed bottom-4 inset-x-4 sm:left-auto sm:right-6 sm:max-w-sm z-50">

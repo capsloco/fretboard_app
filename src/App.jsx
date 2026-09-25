@@ -13,6 +13,7 @@ import HistoryStatsScreen from './components/history/HistoryStatsScreen';
 import { generatePrompt, gradeDetectedNote, midiToNoteLabel, INSTRUMENT_PRESETS } from './lib/fretLogic';
 import { loadCustomInstruments, savePracticeSession, savePracticeAttempts, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
 import { getInitialTheme, applyTheme } from './lib/theme';
+import { isAnalyticsEnabled } from './lib/analytics';
 import { Check, X } from 'lucide-react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -436,7 +437,9 @@ export default function App() {
           <a className="link link-hover" href="https://github.com/capsloco/fretboard_app" target="_blank" rel="noreferrer">Source code</a>
           <button type="button" onClick={() => openLegal('privacy')} className="link link-hover">Privacy</button>
           <button type="button" onClick={() => openLegal('terms')} className="link link-hover">Terms</button>
-          <button type="button" onClick={() => setIsCookieConsentOpen(true)} className="link link-hover">Cookies</button>
+          {isAnalyticsEnabled && (
+            <button type="button" onClick={() => setIsCookieConsentOpen(true)} className="link link-hover">Cookies</button>
+          )}
         </nav>
       </footer>
 

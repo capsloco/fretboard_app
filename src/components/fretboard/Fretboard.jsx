@@ -1,7 +1,7 @@
 import React from 'react';
 import { getNoteAtFret, getStringMidis, getFretMarkerType } from '../../lib/fretLogic';
 
-const LABEL_REM = 3;
+const LABEL_REM = 3.5;
 const NUT_REM = 0.875;
 const MIN_FRET_REM = 2.4;
 
@@ -84,7 +84,7 @@ export default function Fretboard({
           {/* String labels */}
           <div style={{ width: `${LABEL_REM}rem` }} className="shrink-0">
             {strings.map(s => (
-              <div key={s.index} className="h-9 sm:h-11 flex items-center justify-between px-1.5 font-display">
+              <div key={s.index} className="h-9 sm:h-11 flex items-center justify-between pl-1.5 pr-4 font-display">
                 <span className="text-xs opacity-60 tabular-nums">{s.number}</span>
                 <span className="font-bold text-sm sm:text-base">{s.openNote}</span>
               </div>

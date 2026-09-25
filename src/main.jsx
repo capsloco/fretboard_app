@@ -11,6 +11,9 @@ import '@fontsource/barlow-condensed/800.css'
 import '@fontsource/yellowtail/400.css'
 import './index.css'
 import App from './App.jsx'
+import { initAnalytics } from './lib/analytics'
+
+initAnalytics()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

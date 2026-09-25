@@ -1,81 +1,113 @@
-# 🎸 FretLearn — Hands-Free Fretboard Trainer 🚀
+# FretLearn
 
-> **Master your fretboard from 4 to 6 feet away — zero hands on your screen required!** ⚡
+Learn every note on the guitar or bass neck. FretLearn shows you a note, you play it, and it listens through your
+microphone to tell you whether you got it right.
 
-Welcome to **FretLearn** ([fretlearn.app](https://fretlearn.app)), the ultimate visual training companion for guitarists, bassists, and string instrument players! ⚡ Pick up your physical instrument, set your device down at eye level, start a practice round, and call out your results hands-free using voice commands, string plucks, or footswitch hotkeys! 🎙️🔥
+Free, open source, and runs entirely in the browser. Live at [fretlearn.app](https://fretlearn.app).
 
----
+![A practice round in the Tweed theme](docs/screenshots/practice-tweed.png)
 
-## ✨ Features That Rock 🤘
+## What it does
 
-### 🗣️ 1. Hands-Free Voice & Audio Pluck Controls
-* **Web Speech API**: Say **"Got it"**, **"Hit"**, **"Pass"**, or **"Correct"** to log a successful note recall; say **"Missed"**, **"Wrong"**, or **"Skip"** to log a miss.
-* **Universal Audio Pluck Trigger (Firefox & Safari Compatible)**: Uses Web Audio API peak analysis to detect guitar string plucks or snaps.
-* **Keyboard Hotkeys**: Use **Spacebar** / **Enter** for Pass, **M** / **Backspace** for Miss.
+- **Hears what you play.** Pick up your instrument, press start and play the note on screen. The right note scores a
+  point; any other note is a miss and you move on. No tapping, no honour system.
+- **Two kinds of prompt.** "Find C" anywhere in your fret range, or "find C on the A string". String prompts only accept
+  the exact pitch that string makes inside the range, so the same note on the wrong string usually won't count.
+- **Any instrument you tune.** 6- and 7-string guitar, 4- and 5-string bass, drop, open and modal tunings, or build your
+  own with 4–8 strings and 12–24 frets.
+- **Shows you the answer.** A fretboard with real string gauges and inlays lights up every position of the note.
+- **Tracks progress.** Accuracy over time, best streaks and the notes you miss most (with a free account).
+- **Other ways to answer.** Say "got it" or "missed", tap the buttons, or use Space and M (Bluetooth page-turner
+  pedals work too).
+- **Day and night themes.** Tweed (aged cream lacquer) and Tolex (black amp covering).
 
-### 👁️ 2. Distance Ergonomics & Collapsible Practice Viewport
-* **Dead-Centered Arrow Header Toggle**: When a practice session starts, the main header auto-hides into a single dead-centered `▼` arrow handle at the top of the screen for zero screen clutter!
-* **Single Viewport Fit**: Compact note prompt cards, voice controls, and action buttons designed to fit 100% inside your mobile viewport without scrolling.
-* **Massive Typography**: High-contrast 4–6 ft viewing distance note display.
+![The home screen in the Tolex theme](docs/screenshots/home-tolex.png)
 
-### 🎸 3. Realistic Wood Grain Interactive Fretboard
-* **Real Wood Textures (Theme-Aware)**: Dynamically switches between **Light Maple Wood** (for Clean, Light & Acid themes) and **Dark Rosewood / Laurel Wood** (for Dark & Neon themes) with subtle linear wood grain striations.
-* **Narrow Ivory/Bone Nut**: Fret 0 features a dedicated narrow, realistic bone/ivory nut strip (`bg-amber-50 text-amber-950`) with an `N` header badge.
-* **Pearl & Dark Walnut Inlays**: Real-time switching between mother-of-pearl dots on Rosewood and dark walnut dots on Maple.
-* **Accurate String Gauges & Fret Wires**: String 1 (highest pitch, e.g. High E) renders as thin wire (~1.2px) and the lowest string renders as thick wire (~5.5px) with theme-reactive metallic fret wire dividers.
-* **100% Desktop Width & 24-Fret Responsive Layout**: Expands cleanly to fill full desktop screens while offering smooth horizontal scrolling for 12 to 24 frets.
+## How note detection works
 
-### 🎯 4. Custom daisyUI Popovers & Controls
-* **Custom Dropdown Menus**: Replaced native browser OS selects with custom daisyUI popover dropdown cards for tunings and per-string custom note selectors.
-* **Sleek Floating Chevron Handle**: Minimal, non-intrusive floating chevron handle (`▼`) that expands the top navbar during practice sessions.
+All audio processing happens in your browser. Nothing is recorded or uploaded.
 
-### 🎯 5. Game Modes & Notation Customization
-* **🎯 Pass / Fail Mode (Tracked)**: React to prompts, track round accuracy %, session duration, and build 🔥 **Streaks**!
-* **⏱️ Timed Flashcard Mode**: Continuous hands-free loop with custom note interval timers.
-* **🎵 3-Way Notation Switcher**: Toggle between **Sharps (#)**, **Both (C#/D♭)**, or **Flats (♭)**.
-* **🔍 Scope & Range Sliders**: Practice *Global Notes* or *String-Specific* prompts across custom fret ranges (e.g. Frets 5–12).
+1. The mic is opened with the browser's voice-call processing (echo cancellation, noise suppression, auto gain)
+   switched off, since those smear pitch and pump the level of a plucked string.
+2. About 30 times a second, the last ~85 ms of audio is downsampled to ~22 kHz and run through the
+   [YIN](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf) pitch detector, limited to the range your instrument can
+   play (a 5-string bass's low B up to a guitar's 24th fret).
+3. A note tracker turns those readings into "note played" events: a pitch has to hold steady for about 100 ms,
+   a ringing string isn't counted twice, re-plucking the same note counts again, and a pitch change with no fresh
+   attack has to hold much longer.
+4. The event is graded against the prompt. Octaves come from the tuning: each string's octave is inferred from
+   where that string sits in standard tuning (Drop D's low string is D2, a 5-string bass's low B is B0).
 
-### 🎼 6. Categorized Tuning Presets & Instrument Builder
-* **Preset Library**: Standard, Transposed (Half Step Down, Full Step Down), Drop (Drop D, Drop C, Drop A), Open & Modal (DADGAD, Open G, Open D) tunings for 6-String & 7-String Guitars and 4-String & 5-String Basses.
-* **Custom Per-String Note Selector**: Build and save custom tunings note-by-note using custom daisyUI popovers.
+Code: [`src/lib/pitchDetection.js`](src/lib/pitchDetection.js) and `gradeDetectedNote` in
+[`src/lib/fretLogic.js`](src/lib/fretLogic.js). Both are covered by tests that synthesise plucked strings for every
+note on a guitar and a 5-string bass.
 
-### 📜 7. Legal, Privacy & Consent Mode v2
-* **Google Consent Mode v2 & Cookie Consent Banner**: Integrated `analytics_storage` consent default blocking before GTM load with an interactive consent banner and footer preference controls.
-* **Privacy Policy & Terms of Service**: Modal (`LegalModal.jsx`) and footer links covering Supabase Auth, practice stats, Google Tag Manager telemetry, and user data rights.
+**Limits worth knowing**
 
----
+- A mic can't tell strings apart when the pitch is identical (the open A and the D string at fret 7 sound the same).
+- Tune up first. A string more than a quarter-tone off can be read as the neighbouring note.
+- Acoustic guitars are fine with a laptop or phone mic. Electric guitars and basses work best through an amp or an
+  audio interface.
 
-## 🛠️ Tech Stack 🧰
+## Running it locally
 
-* ⚛️ **Frontend**: React 19 + Vite 8
-* 🌼 **UI System**: daisyUI v5 + Tailwind CSS v4 (`@tailwindcss/vite`)
-* 🪵 **Graphics & Motion**: Pure CSS Real Wood Grain Textures + Lucide Icons
-* 🎙️ **Voice Control**: Web Speech API (`webkitSpeechRecognition`) + Web Audio API (`AnalyserNode`)
-* 🗄️ **Database & Auth**: Supabase (Google OAuth + Postgres DB) with `localStorage` fallback
-* 📊 **Analytics & Compliance**: Google Tag Manager (`GTM-5THRLVG4`) + Google Consent Mode v2
-
----
-
-## 🚀 Quick Start (Local Development)
+You need Node.js 22.12 or newer.
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/capsloco/fretboard_app.git
-
-# 2. Navigate to project folder
 cd fretboard_app
-
-# 3. Install dependencies
 npm install
-
-# 4. Fire up the local dev server
 npm run dev
 ```
 
-Open your browser at `http://localhost:5173` and start shredding! 🎸🔥
+Open http://localhost:5173. Browsers only allow the microphone on secure pages: `localhost` works, but testing from a
+phone or another device on your network needs HTTPS.
 
----
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server with hot reload |
+| `npm test` | Unit tests (Vitest) |
+| `npm run lint` | Lint (oxlint) |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the production build |
 
-<p align="center">
-  Made with ❤️ for guitarists & bassists everywhere. Keep shredding! ⚡🎸
-</p>
+### Configuration
+
+Everything works without configuration: settings and custom instruments are kept in `localStorage`. Copy
+`.env.example` to `.env.local` to turn on the optional services.
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Accounts (Google, email link, password), cloud sync and practice history via [Supabase](https://supabase.com). Run [`supabase/migrations/0001_practice_tracking.sql`](supabase/migrations/0001_practice_tracking.sql) in the Supabase SQL editor once. |
+| `VITE_GTM_ID` | Google Tag Manager container ID. Unset means no analytics and no cookie banner. |
+
+## Tech
+
+React 19, Vite 8, Tailwind CSS 4 and daisyUI 5 (two custom themes in [`src/index.css`](src/index.css)), the Web Audio
+API for detection, the Web Speech API for voice commands, Supabase for accounts, Recharts for stats, and Vitest.
+
+```
+src/
+  App.jsx                  session state and flow
+  components/
+    home/                  start screen
+    session/               input panel, needle meter, prompt card, round summary
+    fretboard/             fretboard renderer
+    settings/, ui/         settings, modals, header
+    history/               stats screen
+  hooks/usePitchListener.js
+  lib/
+    pitchDetection.js      YIN, note tracker, microphone listener
+    fretLogic.js           notes, tunings, prompts, grading
+    voice.js               voice commands
+    supabase.js            accounts and storage (with localStorage fallback)
+    analytics.js           optional Google Tag Manager
+```
+
+## Contributing
+
+Bug reports, tunings and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE)

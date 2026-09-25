@@ -2,7 +2,16 @@
   "name": "fretlearn",
   "private": true,
   "version": "0.0.0",
+  "description": "Learn every note on the guitar or bass neck. FretLearn listens to what you play and scores every answer.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/capsloco/fretboard_app.git"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

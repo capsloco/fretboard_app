@@ -1,9 +1,18 @@
 import React from 'react';
-import { Eye, EyeOff, Check, X } from 'lucide-react';
+import { Eye, EyeOff, Check, X, Timer, RotateCcw } from 'lucide-react';
+
+// A wrong note on a flashcard doesn't end the card, so it asks for another go instead of calling a miss
+function feedbackStyle(result) {
+  if (result.correct) return { label: 'Got it', tone: 'badge-success', Icon: Check };
+  if (result.timedOut) return { label: 'Time’s up', tone: 'badge-error', Icon: Timer };
+  if (result.retry) return { label: 'Try again', tone: 'badge-warning', Icon: RotateCcw };
+  return { label: 'Missed', tone: 'badge-error', Icon: X };
+}
 
 function Feedback({ result }) {
   if (!result) return <span className="h-8" aria-hidden="true" />;
 
+  const { label, tone, Icon } = feedbackStyle(result);
   const detail = result.correct
     ? result.heard && `heard ${result.heard}`
     : result.heard
@@ -14,10 +23,10 @@ function Feedback({ result }) {
     <span
       key={result.id}
       role="status"
-      className={`badge badge-lg gap-1.5 font-display uppercase tracking-wide ${result.correct ? 'badge-success' : 'badge-error'}`}
+      className={`badge badge-lg gap-1.5 font-display uppercase tracking-wide ${tone}`}
     >
-      {result.correct ? <Check className="size-4" /> : <X className="size-4" />}
-      {result.correct ? 'Got it' : 'Missed'}
+      <Icon className="size-4" />
+      {label}
       {detail && <span className="normal-case tracking-normal font-sans font-medium opacity-90">· {detail}</span>}
     </span>
   );

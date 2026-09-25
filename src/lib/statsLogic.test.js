@@ -5,6 +5,7 @@ import {
   buildNoteWeights,
   buildStringStats,
   pickFocusNotes,
+  summarizeFlashcardRound,
   summarizeSessions
 } from './statsLogic';
 import { generatePrompt, getNoteIndex, INSTRUMENT_PRESETS } from './fretLogic';
@@ -108,6 +109,58 @@ describe('session summaries', () => {
   it('charts rounds oldest first, skipping empty ones', () => {
     expect(bucketAccuracyByRange(sessions, 'max').map(p => p.accuracyPct)).toEqual([40, 80]);
     expect(bucketAccuracyByRange(sessions, '7d').map(p => p.accuracyPct)).toEqual([80]);
+  });
+});
+
+describe('summarizeFlashcardRound', () => {
+  const card = (targetNote, isCorrect, extra = {}) => ({
+    targetNote, isCorrect, responseTimeMs: 2000, inputSource: 'mic', wrongNotesHeard: [], peeked: false, ...extra
+  });
+
+  it('counts cards that timed out as missed, so a round with misses is not a clean sweep', () => {
+    const recap = summarizeFlashcardRound([
+      card('E', true),
+      card('G', false, { inputSource: 'timeout', responseTimeMs: 4000 }),
+      card('A', true),
+      card('G', false, { inputSource: 'timeout', responseTimeMs: 4000 })
+    ]);
+    expect(recap).toMatchObject({ cards: 4, found: 2, clean: 2, slipped: 0, missed: 2 });
+    expect(recap.toWorkOn).toHaveLength(1);
+    expect(recap.toWorkOn[0]).toMatchObject({ note: 'G', shown: 2, missed: 2, timedOut: 2 });
+  });
+
+  it('marks a note found after a wrong note or a peek as a slip, with the notes heard', () => {
+    const recap = summarizeFlashcardRound([
+      card('C', true, { wrongNotesHeard: ['B2', 'D3'] }),
+      card('C', false, { inputSource: 'timeout', wrongNotesHeard: ['B2'] }),
+      card('F', true, { peeked: true })
+    ]);
+    expect(recap).toMatchObject({ found: 2, clean: 0, slipped: 2, missed: 1 });
+    expect(recap.toWorkOn.map(n => n.note)).toEqual(['C', 'F']);
+    expect(recap.toWorkOn[0]).toMatchObject({ missed: 1, slipped: 1, heard: ['B2', 'D3'] });
+    expect(recap.toWorkOn[1]).toMatchObject({ slipped: 1, peeked: 1 });
+  });
+
+  it('lists notes found first try every time, and C# and D♭ as one note', () => {
+    const recap = summarizeFlashcardRound([
+      card('A', true),
+      card('C#', true),
+      card('D♭', false, { inputSource: 'keyboard' }),
+      card('E', true),
+      card('A', true)
+    ]);
+    expect(recap.solid.map(n => n.note)).toEqual(['E', 'A']);
+    expect(recap.toWorkOn[0]).toMatchObject({ note: 'C#', shown: 2, missed: 1, timedOut: 0 });
+  });
+
+  it('averages the find time over found cards only', () => {
+    const recap = summarizeFlashcardRound([
+      card('E', true, { responseTimeMs: 1000 }),
+      card('A', true, { responseTimeMs: 3000 }),
+      card('G', false, { inputSource: 'timeout', responseTimeMs: 4000 })
+    ]);
+    expect(recap.avgFindMs).toBe(2000);
+    expect(summarizeFlashcardRound([]).avgFindMs).toBeNull();
   });
 });
 

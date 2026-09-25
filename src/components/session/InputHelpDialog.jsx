@@ -9,7 +9,8 @@ const SECTIONS = [
       <>
         <p>
           FretLearn listens for the pitch you play. The right note scores a point. Any other
-          note counts as a miss, and you move on to the next prompt.
+          note counts as a miss, and you move on to the next prompt. In flashcards a wrong note doesn’t end the
+          card: keep playing until you find it or time runs out.
         </p>
         <p>
           On “find it on the A string” prompts you have to play the exact pitch that string makes

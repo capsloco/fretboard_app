@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Speech, Keyboard, HelpCircle, Flag, Volume2 } from 'lucide-react';
 import NoteMeter from './NoteMeter';
 import InputHelpDialog from './InputHelpDialog';
+import SensitivityControl from '../ui/SensitivityControl';
 import { usePitchListener } from '../../hooks/usePitchListener';
 import { VoiceControllerHandler, isSpeechRecognitionSupported } from '../../lib/voice';
 
@@ -215,19 +216,13 @@ export default function InputPanel({
                   {MIC_MESSAGES[status] ?? ''}
                 </p>
               )}
-              <label className="flex items-center gap-2 text-xs font-display uppercase tracking-wider">
-                <span className="shrink-0">Sensitivity</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={sensitivity}
-                  onChange={(e) => onSensitivityChange(Number(e.target.value))}
-                  className="range range-xs range-primary max-w-40"
-                  aria-label="Mic sensitivity"
-                />
-                <span className="tabular-nums w-4">{sensitivity}</span>
-              </label>
+              <SensitivityControl
+                value={sensitivity}
+                onChange={onSensitivityChange}
+                size="xs"
+                className="flex-wrap text-xs font-display uppercase tracking-wider max-w-72"
+                labelClassName="w-full sm:w-auto"
+              />
             </div>
           </>
         )}

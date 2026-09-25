@@ -3,11 +3,11 @@ import { PitchListener, isPitchDetectionSupported } from '../lib/pitchDetection'
 import { getInstrumentFrequencyRange } from '../lib/fretLogic';
 
 /**
- * Sensitivity 1-10 -> noise gate in dBFS (1 = only loud notes, 10 = picks up a whisper).
- * The default of 6 is -43 dBFS: loud enough that fret buzz and finger noise mostly stay under it.
+ * Sensitivity 1-10 (in 0.1 steps) -> noise gate in dBFS (1 = only very loud notes, 10 = picks up a quiet one).
+ * The default of 6 is -31 dBFS, so fret buzz, finger noise and a fading last note mostly stay under it.
  */
 export function sensitivityToGateDb(sensitivity) {
-  return -19 - 4 * sensitivity;
+  return -7 - 4 * sensitivity;
 }
 
 /**
@@ -17,7 +17,8 @@ export function sensitivityToGateDb(sensitivity) {
  * frame:  latest analysis frame ({ frequency, levelDb, ringing, ... }) for meters, ~30 per second
  * expectNewNote(): call when a new prompt appears (see NoteTracker.arm)
  */
-export function usePitchListener({ enabled, instrument, sensitivity, onNote }) {
+/** @param gateOffsetDb added to the sensitivity's gate, e.g. negative for the tuner, which follows a fading note */
+export function usePitchListener({ enabled, instrument, sensitivity, onNote, gateOffsetDb = 0 }) {
   const [status, setStatus] = useState('off');
   const [frame, setFrame] = useState(null);
   const listenerRef = useRef(null);
@@ -31,7 +32,7 @@ export function usePitchListener({ enabled, instrument, sensitivity, onNote }) {
     () => getInstrumentFrequencyRange(instrument),
     [instrument]
   );
-  const gateDb = sensitivityToGateDb(sensitivity);
+  const gateDb = sensitivityToGateDb(sensitivity) + gateOffsetDb;
 
   useEffect(() => {
     if (!enabled) return undefined;

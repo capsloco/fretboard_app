@@ -32,9 +32,15 @@ function verdictFor(cents) {
     : { text: 'Too high · loosen the string', tone: '' };
 }
 
+// The tuner has to follow a string as it fades, so it hears quieter sound than practice rounds
+// (the same threshold it had before practice rounds got stricter)
+const TUNER_GATE_OFFSET_DB = -18;
+
 /** Mounted only while the tuner is open, so the mic is off the rest of the time */
 function Tuner({ instrument, sensitivity, noteDisplay }) {
-  const { status, frame, gateDb, resume } = usePitchListener({ enabled: true, instrument, sensitivity, onNote: noop });
+  const { status, frame, gateDb, resume } = usePitchListener({
+    enabled: true, instrument, sensitivity, onNote: noop, gateOffsetDb: TUNER_GATE_OFFSET_DB
+  });
   const stringMidis = useMemo(() => getStringMidis(instrument), [instrument]);
   const [chosenString, setChosenString] = useState(null); // null = pick the nearest string
 

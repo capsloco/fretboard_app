@@ -3,6 +3,7 @@ import { X, Play, Mic, Speech, Keyboard } from 'lucide-react';
 import Modal from './Modal';
 import InstrumentBuilder from '../settings/InstrumentBuilder';
 import FretRangeSlider from './FretRangeSlider';
+import SensitivityControl from './SensitivityControl';
 import { THEMES } from '../../lib/theme';
 import { getStringName } from '../../lib/fretLogic';
 
@@ -149,18 +150,15 @@ export default function SessionSettingsModal({
                 ]}
               />
               {config.inputMode === 'mic' && (
-                <label className="flex items-center gap-3 mt-2">
-                  <span className="text-sm shrink-0">Mic sensitivity</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
+                <div className="mt-2 flex flex-col gap-1">
+                  <SensitivityControl
                     value={config.micSensitivity}
-                    onChange={(e) => onChangeConfig('micSensitivity', Number(e.target.value))}
-                    className="range range-sm range-primary"
+                    onChange={(value) => onChangeConfig('micSensitivity', value)}
+                    label="Mic sensitivity"
+                    className="text-sm"
                   />
-                  <span className="tabular-nums w-5 text-sm">{config.micSensitivity}</span>
-                </label>
+                  <p className="label whitespace-normal">Lower needs a louder note. Use − and + to fine-tune if fret buzz or a slide still gets picked up.</p>
+                </div>
               )}
             </fieldset>
 

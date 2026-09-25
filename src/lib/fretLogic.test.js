@@ -1,0 +1,88 @@
+import { describe, it, expect } from 'vitest';
+import {
+  INSTRUMENT_PRESETS,
+  TUNING_PRESETS,
+  generatePrompt,
+  getNoteIndex,
+  getStringMidis,
+  gradeDetectedNote,
+  midiToNoteLabel
+} from './fretLogic';
+
+// 'E♭2' -> 39, 'F♯3' -> 54
+function parseScientificPitch(label) {
+  const match = label.trim().match(/^(.+?)(-?\d)$/);
+  return (Number(match[2]) + 1) * 12 + getNoteIndex(match[1]);
+}
+
+const guitar = INSTRUMENT_PRESETS.find(i => i.id === 'guitar_standard');
+
+describe('getStringMidis', () => {
+  it.each(TUNING_PRESETS)('infers the documented octaves for $name', (preset) => {
+    const instrument = { tuning: preset.tuning, type: preset.type };
+    const documented = preset.octaves.split(' - ').map(parseScientificPitch);
+    expect(getStringMidis(instrument)).toEqual(documented);
+  });
+
+  it('handles custom instruments without a type', () => {
+    expect(getStringMidis({ tuning: ['E', 'A', 'D', 'G'] })).toEqual([28, 33, 38, 43]);
+    expect(getStringMidis({ tuning: ['C', 'G', 'C', 'G', 'C', 'E'] })).toEqual([36, 43, 48, 55, 60, 64]);
+    expect(getStringMidis({ tuning: ['F#', 'B', 'E', 'A', 'D', 'G', 'B', 'E'] })).toEqual([30, 35, 40, 45, 50, 55, 59, 64]);
+  });
+});
+
+describe('midiToNoteLabel', () => {
+  it('uses scientific pitch octaves', () => {
+    expect(midiToNoteLabel(60)).toEqual({ name: 'C', octave: 4 });
+    expect(midiToNoteLabel(40)).toEqual({ name: 'E', octave: 2 });
+    expect(midiToNoteLabel(58, 'flats')).toEqual({ name: 'B♭', octave: 3 });
+  });
+});
+
+describe('gradeDetectedNote', () => {
+  const globalC = { promptType: 'global', note: 'C' };
+  // C on the A string, frets 0-12: only fret 3 (C3, MIDI 48)
+  const cOnA = { promptType: 'string_specific', note: 'C', stringIndex: 1, targetFrets: [3] };
+
+  it('accepts any octave for global prompts', () => {
+    expect(gradeDetectedNote(globalC, 48, guitar).correct).toBe(true);
+    expect(gradeDetectedNote(globalC, 72, guitar).correct).toBe(true);
+    expect(gradeDetectedNote(globalC, 50, guitar).correct).toBe(false);
+  });
+
+  it('needs the exact pitch for string-specific prompts', () => {
+    expect(gradeDetectedNote(cOnA, 48, guitar)).toMatchObject({ correct: true, expectedMidis: [48] });
+    const wrongOctave = gradeDetectedNote(cOnA, 60, guitar);
+    expect(wrongOctave).toMatchObject({ correct: false, pitchClassMatch: true });
+    expect(gradeDetectedNote(cOnA, 50, guitar)).toMatchObject({ correct: false, pitchClassMatch: false });
+  });
+
+  it('matches enharmonic spellings', () => {
+    expect(gradeDetectedNote({ promptType: 'global', note: 'D♭' }, 49, guitar).correct).toBe(true);
+    expect(gradeDetectedNote({ promptType: 'global', note: 'C#/D♭' }, 61, guitar).correct).toBe(true);
+  });
+});
+
+describe('generatePrompt', () => {
+  it('always produces an answerable prompt, even in a tiny fret range', () => {
+    for (const promptType of ['global', 'string_specific']) {
+      for (let i = 0; i < 200; i++) {
+        const prompt = generatePrompt({
+          promptType,
+          includeAccidentals: i % 2 === 0,
+          minFret: 5,
+          maxFret: 6,
+          instrument: guitar
+        });
+        expect(prompt.validPositions.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('never repeats the previous note', () => {
+    for (let i = 0; i < 100; i++) {
+      const prompt = generatePrompt({ instrument: guitar, previousNote: 'C' });
+      expect(prompt.note).not.toBe('C');
+    }
+  });
+});

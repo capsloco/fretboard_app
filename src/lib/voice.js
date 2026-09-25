@@ -1,5 +1,10 @@
 // Voice Recognition Helper using Web Speech API (webkitSpeechRecognition)
 
+const wordPattern = (words) => new RegExp(`\\b(${words.join('|')})\\b`);
+const PASS_PATTERN = wordPattern(['got it', 'got', 'correct', 'pass', 'yes', 'yeah', 'hit', 'right', 'good', 'check']);
+const MISS_PATTERN = wordPattern(['missed', 'miss', 'wrong', 'no', 'nope', 'not', 'fail', 'skip', 'bad', 'oops']);
+const FATAL_ERRORS = ['not-allowed', 'service-not-allowed', 'audio-capture', 'network'];
+
 export function isSpeechRecognitionSupported() {
   return typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
 }
@@ -47,7 +52,8 @@ export class VoiceControllerHandler {
     };
 
     this.recognition.onerror = (event) => {
-      console.warn('Speech recognition error:', event.error);
+      // Restarting after these just fails again in a tight loop
+      if (FATAL_ERRORS.includes(event.error)) this.shouldAutoRestart = false;
       if (this.onError) this.onError(event.error);
     };
 
@@ -63,24 +69,11 @@ export class VoiceControllerHandler {
   }
 
   processTranscript(transcript) {
-    console.log('[Voice Recognition Heard]:', transcript);
-
-    // Pass / Correct commands
-    const passPhrases = ['got it', 'got', 'correct', 'pass', 'yes', 'hit', 'right', 'good', 'check', 'next'];
-    // Miss / Incorrect commands
-    const missPhrases = ['missed', 'miss', 'wrong', 'no', 'fail', 'skip', 'bad', 'oops'];
-    // Pause / Resume
-    const pausePhrases = ['pause', 'stop', 'hold'];
-    const resumePhrases = ['resume', 'start', 'continue'];
-
-    if (passPhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'PASS', transcript, source: 'voice' });
-    } else if (missPhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'MISS', transcript, source: 'voice' });
-    } else if (pausePhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'PAUSE', transcript, source: 'voice' });
-    } else if (resumePhrases.some(phrase => transcript.includes(phrase))) {
-      if (this.onCommand) this.onCommand({ type: 'RESUME', transcript, source: 'voice' });
+    // Whole words only, and misses win ties ("not right" is a miss)
+    if (MISS_PATTERN.test(transcript)) {
+      this.onCommand?.({ type: 'MISS', transcript, source: 'voice' });
+    } else if (PASS_PATTERN.test(transcript)) {
+      this.onCommand?.({ type: 'PASS', transcript, source: 'voice' });
     }
   }
 

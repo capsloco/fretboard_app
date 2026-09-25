@@ -1,18 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './components/ui/Header';
+import Launchpad from './components/home/Launchpad';
 import DisplayPrompt from './components/session/DisplayPrompt';
 import Fretboard from './components/fretboard/Fretboard';
-import VoiceController from './components/session/VoiceController';
+import InputPanel from './components/session/InputPanel';
 import SessionSummary from './components/session/SessionSummary';
 import SessionSettingsModal from './components/ui/SessionSettingsModal';
 import AuthModal from './components/ui/AuthModal';
 import LegalModal from './components/ui/LegalModal';
 import CookieConsentBanner from './components/ui/CookieConsentBanner';
 import HistoryStatsScreen from './components/history/HistoryStatsScreen';
-import { generatePrompt, INSTRUMENT_PRESETS, TUNING_PRESETS } from './lib/fretLogic';
+import { generatePrompt, gradeDetectedNote, midiToNoteLabel, INSTRUMENT_PRESETS } from './lib/fretLogic';
 import { loadCustomInstruments, savePracticeSession, savePracticeAttempts, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
-import { Play, CheckCircle2, XCircle, Sliders, RotateCcw, Volume2, Eye, EyeOff, Trophy, Sparkles } from 'lucide-react';
+import { getInitialTheme, applyTheme } from './lib/theme';
+import { isAnalyticsEnabled } from './lib/analytics';
+import { Check, X } from 'lucide-react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+
+// Ignore mic notes this soon after a new prompt: it's the tail of the last answer
+const MIC_GRACE_MS = 250;
+
+const EMPTY_STATS = {
+  totalPrompts: 0,
+  correctCount: 0,
+  incorrectCount: 0,
+  currentStreak: 0,
+  bestStreak: 0
+};
 
 export default function App() {
   // Instrument & Custom Config state
@@ -28,12 +42,11 @@ export default function App() {
   const [legalTab, setLegalTab] = useState('privacy');
   const [isCookieConsentOpen, setIsCookieConsentOpen] = useState(false);
 
-  // Appearance / Theme State
-  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('fretlearn_theme') || 'emerald');
+  // Appearance
+  const [currentTheme, setCurrentTheme] = useState(getInitialTheme);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    localStorage.setItem('fretlearn_theme', currentTheme);
+    applyTheme(currentTheme);
   }, [currentTheme]);
 
   // Session Parameters State
@@ -45,40 +58,35 @@ export default function App() {
     minFret: 0,
     maxFret: 12,
     flashcardSecondsPerNote: 4,
-    flashcardDurationMins: 5
+    flashcardDurationMins: 5,
+    inputMode: 'mic', // 'mic' | 'voice' | 'manual'
+    micSensitivity: 6 // 1-10
   });
+  const noteDisplay = config.noteDisplay || (config.useFlats ? 'flats' : 'sharps');
 
   // Active Session State
   const [sessionState, setSessionState] = useState('idle'); // 'idle' | 'running' | 'summary' | 'history'
   const [currentPrompt, setCurrentPrompt] = useState(null);
   const [isRevealed, setIsRevealed] = useState(false);
-  const [voiceListening, setVoiceListening] = useState(false);
+  const [lastResult, setLastResult] = useState(null);
 
-  // Timers & Counter State
+  // Timers
   const [timeLeft, setTimeLeft] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [sessionDurationSecs, setSessionDurationSecs] = useState(0);
 
-  // Stats Tracker
-  const [stats, setStats] = useState({
-    totalPrompts: 0,
-    correctCount: 0,
-    incorrectCount: 0,
-    currentStreak: 0,
-    bestStreak: 0
-  });
+  const [stats, setStats] = useState(EMPTY_STATS);
 
   // Per-attempt records for the currently running session (persisted at finishSession)
   const [attempts, setAttempts] = useState([]);
   const promptShownAtRef = useRef(null);
-
-  const timerRef = useRef(null);
 
   // Load saved user settings, custom instruments & auth on mount
   useEffect(() => {
     async function initData() {
       const u = await getCurrentUser();
       setUser(u);
-      
+
       const customInsts = await loadCustomInstruments(u?.id);
       setUserCustomInstruments(customInsts);
 
@@ -133,7 +141,6 @@ export default function App() {
     }, user?.id);
   };
 
-  // Update session config
   const handleConfigChange = (key, value) => {
     setConfig(prev => {
       const updated = { ...prev, [key]: value };
@@ -150,113 +157,61 @@ export default function App() {
     saveSettingsToStorage(config, inst);
   };
 
-  const handleTuningSelect = (tuningId) => {
-    if (!tuningId) return;
-    if (tuningId === 'custom') {
-      const updated = {
-        ...currentInstrument,
-        tuningId: 'custom'
-      };
-      setCurrentInstrument(updated);
-      saveSettingsToStorage(config, updated);
-      return;
-    }
+  const makePrompt = useCallback((previousNote = null) => generatePrompt({
+    promptType: config.promptType,
+    includeAccidentals: config.includeAccidentals,
+    minFret: config.minFret,
+    maxFret: config.maxFret,
+    instrument: currentInstrument,
+    noteDisplay,
+    previousNote
+  }), [config.promptType, config.includeAccidentals, config.minFret, config.maxFret, currentInstrument, noteDisplay]);
 
-    const preset = TUNING_PRESETS.find(t => t.id === tuningId);
-    if (preset) {
-      const updated = {
-        ...currentInstrument,
-        tuningId: preset.id,
-        tuningName: preset.name,
-        tuning: [...preset.tuning]
-      };
-      setCurrentInstrument(updated);
-      saveSettingsToStorage(config, updated);
-    }
-  };
-
-  // Start new practice session
-  const startNewSession = () => {
-    setStats({
-      totalPrompts: 0,
-      correctCount: 0,
-      incorrectCount: 0,
-      currentStreak: 0,
-      bestStreak: 0
-    });
-    setAttempts([]);
-    setSessionStartTime(Date.now());
+  const showPrompt = useCallback((prompt) => {
     setIsRevealed(false);
-
-    // Generate initial prompt synchronously
-    const firstPrompt = generatePrompt({
-      promptType: config.promptType,
-      includeAccidentals: config.includeAccidentals,
-      minFret: config.minFret,
-      maxFret: config.maxFret,
-      instrument: currentInstrument,
-      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')
-    });
-    setCurrentPrompt(firstPrompt);
+    setCurrentPrompt(prompt);
     promptShownAtRef.current = Date.now();
+    setTimeLeft(config.sessionMode === 'flashcard' ? config.flashcardSecondsPerNote : null);
+  }, [config.sessionMode, config.flashcardSecondsPerNote]);
 
-    if (config.sessionMode === 'flashcard') {
-      setTimeLeft(config.flashcardSecondsPerNote);
-    } else {
-      setTimeLeft(null);
-    }
+  const nextPrompt = useCallback(() => {
+    showPrompt(makePrompt(currentPrompt?.note));
+  }, [showPrompt, makePrompt, currentPrompt]);
 
+  const startNewSession = () => {
+    setStats(EMPTY_STATS);
+    setAttempts([]);
+    setLastResult(null);
+    setSessionStartTime(Date.now());
+    showPrompt(makePrompt());
     setSessionState('running');
   };
 
-  // Generate next prompt
-  const nextPrompt = () => {
-    setIsRevealed(false);
-    const newPrompt = generatePrompt({
-      promptType: config.promptType,
-      includeAccidentals: config.includeAccidentals,
-      minFret: config.minFret,
-      maxFret: config.maxFret,
-      instrument: currentInstrument,
-      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps'),
-      previousNote: currentPrompt?.note
-    });
-
-    setCurrentPrompt(newPrompt);
-    promptShownAtRef.current = Date.now();
-
-    // Setup timer if flashcard mode
-    if (config.sessionMode === 'flashcard') {
-      setTimeLeft(config.flashcardSecondsPerNote);
-    } else {
-      setTimeLeft(null);
-    }
-  };
-
-  // Flashcard mode loop timer effect
+  // Flashcards: count down each note, and stop after the chosen loop duration
   useEffect(() => {
-    if (sessionState !== 'running' || config.sessionMode !== 'flashcard') {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
+    if (sessionState !== 'running' || config.sessionMode !== 'flashcard') return undefined;
+    const tick = setInterval(() => setTimeLeft(prev => (prev === null ? prev : Math.max(0, prev - 1))), 1000);
+    return () => clearInterval(tick);
+  }, [sessionState, config.sessionMode, currentPrompt]);
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev === null || prev <= 1) {
-          nextPrompt();
-          return config.flashcardSecondsPerNote;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  useEffect(() => {
+    if (timeLeft === 0) nextPrompt();
+  }, [timeLeft, nextPrompt]);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [sessionState, config.sessionMode, config.flashcardSecondsPerNote, currentPrompt]);
+  useEffect(() => {
+    if (sessionState !== 'running' || config.sessionMode !== 'flashcard') return undefined;
+    const stop = setTimeout(() => {
+      setSessionDurationSecs(config.flashcardDurationMins * 60);
+      setSessionState('summary');
+    }, config.flashcardDurationMins * 60000);
+    return () => clearTimeout(stop);
+  }, [sessionState, config.sessionMode, config.flashcardDurationMins]);
 
-  // Record a per-prompt attempt (must run before currentPrompt is replaced by nextPrompt())
-  const recordAttempt = (isCorrect, source) => {
+  /**
+   * Score the current prompt and move on.
+   * @param detected note heard by the mic ({ name, octave, frequency }), if any
+   */
+  const answer = (isCorrect, source, detected = null) => {
     const responseTimeMs = promptShownAtRef.current ? Date.now() - promptShownAtRef.current : null;
     setAttempts(prev => [...prev, {
       targetNote: currentPrompt?.note,
@@ -266,64 +221,71 @@ export default function App() {
       stringOpenNote: currentPrompt?.stringOpenNote ?? null,
       isCorrect,
       responseTimeMs,
-      inputSource: source
+      inputSource: source,
+      detectedNote: detected?.name ?? null,
+      detectedOctave: detected?.octave ?? null,
+      detectedFrequencyHz: detected ? Math.round(detected.frequency * 100) / 100 : null
     }]);
-  };
 
-  // Handle Pass / Correct action
-  const handlePass = (source = 'button') => {
-    recordAttempt(true, source);
     setStats(prev => {
-      const newCorrect = prev.correctCount + 1;
-      const newTotal = prev.totalPrompts + 1;
-      const newStreak = prev.currentStreak + 1;
-      const newBest = Math.max(prev.bestStreak, newStreak);
+      const currentStreak = isCorrect ? prev.currentStreak + 1 : 0;
       return {
-        ...prev,
-        totalPrompts: newTotal,
-        correctCount: newCorrect,
-        currentStreak: newStreak,
-        bestStreak: newBest
+        totalPrompts: prev.totalPrompts + 1,
+        correctCount: prev.correctCount + (isCorrect ? 1 : 0),
+        incorrectCount: prev.incorrectCount + (isCorrect ? 0 : 1),
+        currentStreak,
+        bestStreak: Math.max(prev.bestStreak, currentStreak)
       };
     });
+
+    setLastResult(prev => ({
+      id: (prev?.id ?? 0) + 1,
+      correct: isCorrect,
+      target: currentPrompt?.note,
+      heard: detected ? `${detected.name}${detected.octave}` : null,
+      wrongOctave: Boolean(detected?.wrongOctave)
+    }));
+
     nextPrompt();
   };
 
-  // Handle Miss / Incorrect action
-  const handleMiss = (source = 'button') => {
-    recordAttempt(false, source);
-    setStats(prev => {
-      const newIncorrect = prev.incorrectCount + 1;
-      const newTotal = prev.totalPrompts + 1;
-      return {
-        ...prev,
-        totalPrompts: newTotal,
-        incorrectCount: newIncorrect,
-        currentStreak: 0
-      };
-    });
-    nextPrompt();
-  };
+  const handleDetectedNote = (note) => {
+    if (sessionState !== 'running' || !currentPrompt) return;
+    if (Date.now() - promptShownAtRef.current < MIC_GRACE_MS) return;
 
-  // Handle Voice Command input
-  const handleVoiceCommand = (cmd) => {
-    if (sessionState !== 'running') return;
-    if (cmd.type === 'PASS') {
-      handlePass(cmd.source || 'voice');
-    } else if (cmd.type === 'MISS') {
-      handleMiss(cmd.source || 'voice');
+    const { correct, pitchClassMatch } = gradeDetectedNote(currentPrompt, note.midi, currentInstrument);
+    const heard = midiToNoteLabel(note.midi, noteDisplay);
+    const detected = { ...heard, frequency: note.frequency, wrongOctave: pitchClassMatch && !correct };
+
+    if (correct) {
+      answer(true, 'mic', detected);
+    } else if (config.sessionMode === 'tracked') {
+      answer(false, 'mic', detected);
+    } else {
+      // Flashcards don't penalise: just say what was heard
+      setLastResult(prev => ({
+        id: (prev?.id ?? 0) + 1,
+        correct: false,
+        target: currentPrompt.note,
+        heard: `${heard.name}${heard.octave}`,
+        wrongOctave: detected.wrongOctave
+      }));
     }
   };
 
-  // Finish practice session and calculate stats
+  const handleCommand = (cmd) => {
+    if (sessionState !== 'running') return;
+    if (cmd.type === 'PASS') answer(true, cmd.source || 'voice');
+    else if (cmd.type === 'MISS') answer(false, cmd.source || 'voice');
+  };
+
   const finishSession = async () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    const durationSecs = sessionStartTime 
+    const durationSecs = sessionStartTime
       ? Math.max(1, Math.floor((Date.now() - sessionStartTime) / 1000))
       : 0;
+    setSessionDurationSecs(durationSecs);
 
-    const accuracy = stats.totalPrompts > 0 
+    const accuracy = stats.totalPrompts > 0
       ? Math.round((stats.correctCount / stats.totalPrompts) * 100)
       : 0;
 
@@ -348,7 +310,7 @@ export default function App() {
       minFret: config.minFret,
       maxFret: config.maxFret,
       includeAccidentals: config.includeAccidentals,
-      noteDisplay: config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')
+      noteDisplay
     }, user?.id);
 
     if (sessionId && attempts.length > 0) {
@@ -356,67 +318,45 @@ export default function App() {
     }
   };
 
+  const openLegal = (tab) => {
+    setLegalTab(tab || 'privacy');
+    setIsLegalOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-base-200 text-base-content flex flex-col font-sans selection:bg-primary selection:text-primary-content">
-      {/* Header */}
+    <div className="min-h-screen flex flex-col">
       <Header
-        currentInstrument={currentInstrument}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenHistory={() => setSessionState('history')}
+        onGoHome={sessionState === 'running' ? undefined : () => setSessionState('idle')}
         user={user}
         setUser={setUser}
-        onSelectTuning={handleTuningSelect}
         isSessionRunning={sessionState === 'running'}
+        theme={currentTheme}
+        onChangeTheme={setCurrentTheme}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 py-4 sm:px-6 sm:py-6 flex flex-col">
         {sessionState === 'idle' ? (
-          /* IDLE / LAUNCHPAD SCREEN */
-          <div className="my-auto flex flex-col items-center text-center py-8 px-4">
-            <div className="card bg-base-100 border border-base-300 shadow-2xl max-w-2xl w-full p-8 sm:p-12">
-              <div className="card-body items-center p-0">
-                <div className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-4">
-                  <Play className="w-8 h-8 text-primary ml-1" />
-                </div>
-
-                <h2 className="text-3xl sm:text-5xl font-black text-base-content mb-3">
-                  Ready to Practice?
-                </h2>
-                <p className="text-base-content/70 max-w-md text-sm sm:text-base font-medium mb-8">
-                  Train note recognition on the fretboard using voice commands, guitar plucks, or hands-free flashcards.
-                </p>
-
-                <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <button
-                    onClick={startNewSession}
-                    className="btn btn-primary btn-lg font-black uppercase tracking-wider w-full sm:w-auto shadow-xl"
-                  >
-                    <Play className="w-5 h-5 fill-current" /> Start Practice
-                  </button>
-
-                  <button
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="btn btn-ghost border border-base-300 hover:bg-base-200 text-base-content btn-lg font-bold w-full sm:w-auto"
-                  >
-                    <Sliders className="w-5 h-5 text-primary" /> Configure
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Launchpad
+            instrument={currentInstrument}
+            config={config}
+            onChangeConfig={handleConfigChange}
+            onStart={startNewSession}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+          />
         ) : sessionState === 'summary' ? (
-          /* SESSION SUMMARY SCREEN */
-          <div className="my-auto py-8">
+          <div className="my-auto py-4">
             <SessionSummary
               stats={{
                 ...stats,
                 accuracyPct: stats.totalPrompts > 0 ? Math.round((stats.correctCount / stats.totalPrompts) * 100) : 0,
-                durationSeconds: sessionStartTime ? Math.max(1, Math.floor((Date.now() - sessionStartTime) / 1000)) : 0,
+                durationSeconds: sessionDurationSecs,
                 instrumentTitle: currentInstrument.title,
                 sessionType: config.sessionMode
               }}
+              attempts={attempts}
               onRestart={startNewSession}
               onOpenSettings={() => {
                 setSessionState('idle');
@@ -425,115 +365,84 @@ export default function App() {
             />
           </div>
         ) : sessionState === 'history' ? (
-          /* HISTORY & STATS SCREEN */
           <HistoryStatsScreen
             user={user}
             onBack={() => setSessionState('idle')}
             onOpenAuth={() => setIsAuthOpen(true)}
           />
         ) : (
-          /* ACTIVE PRACTICE SESSION SCREEN */
-          <div className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 py-1">
-            {/* Top Bar Controls in Active Session */}
-            <div className="flex items-center justify-between bg-base-100 border border-base-300 rounded-2xl p-3 shadow-md backdrop-blur-md">
-              <div className="flex items-center gap-2">
-                <VoiceController onCommand={handleVoiceCommand} />
-              </div>
+          /* ACTIVE PRACTICE SESSION */
+          <div className="flex-1 flex flex-col gap-3 sm:gap-4">
+            <InputPanel
+              mode={config.inputMode}
+              onModeChange={(mode) => handleConfigChange('inputMode', mode)}
+              instrument={currentInstrument}
+              noteDisplay={noteDisplay}
+              sensitivity={config.micSensitivity}
+              onSensitivityChange={(value) => handleConfigChange('micSensitivity', value)}
+              onNote={handleDetectedNote}
+              onCommand={handleCommand}
+              onEndRound={finishSession}
+            />
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={finishSession}
-                  className="btn btn-ghost border border-base-300 text-base-content hover:bg-base-200 btn-sm font-bold uppercase tracking-wider"
-                >
-                  End Round
-                </button>
-              </div>
-            </div>
-
-            {/* Main High-Visibility Prompt View */}
             <DisplayPrompt
               prompt={currentPrompt}
               sessionMode={config.sessionMode}
               timeLeft={timeLeft}
+              secondsPerNote={config.flashcardSecondsPerNote}
               isRevealed={isRevealed}
               onRevealToggle={() => setIsRevealed(!isRevealed)}
-              listening={voiceListening}
-              streak={stats.currentStreak}
+              stats={stats}
+              lastResult={lastResult}
             />
 
-            {/* Action Buttons for Tracked Mode */}
+            {/* Manual scoring: always available as a fallback, front and centre without the mic */}
             {config.sessionMode === 'tracked' && (
-              <div className="w-full max-w-2xl mx-auto grid grid-cols-2 gap-3 sm:gap-4 my-2">
+              <div className="w-full max-w-3xl mx-auto grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => handleMiss('button')}
-                  className="btn btn-soft btn-error btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-md gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-transform"
+                  type="button"
+                  onClick={() => answer(false, 'button')}
+                  className={`btn btn-error font-display uppercase tracking-wider ${config.inputMode === 'mic' ? 'btn-soft' : 'btn-lg'}`}
                 >
-                  <XCircle className="w-6 h-6 stroke-[2.5]" />
-                  <span>Missed</span>
+                  <X className="size-5" /> Missed
                 </button>
-
                 <button
-                  onClick={() => handlePass('button')}
-                  className="btn btn-success btn-lg font-extrabold text-base sm:text-lg tracking-wide shadow-lg gap-2.5 rounded-2xl hover:scale-[1.01] active:scale-[0.98] transition-transform"
+                  type="button"
+                  onClick={() => answer(true, 'button')}
+                  className={`btn btn-success font-display uppercase tracking-wider ${config.inputMode === 'mic' ? 'btn-soft' : 'btn-lg'}`}
                 >
-                  <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
-                  <span>Got It</span>
+                  <Check className="size-5" /> Got it
                 </button>
               </div>
             )}
 
-            {/* Visual Interactive Fretboard */}
-            <div className="w-full">
-              <Fretboard
-                instrument={currentInstrument}
-                highlightPositions={currentPrompt?.validPositions || []}
-                revealed={isRevealed}
-                minFret={config.minFret}
-                maxFret={config.maxFret}
-                noteDisplay={config.noteDisplay || (config.useFlats ? 'flats' : 'sharps')}
-                targetNote={currentPrompt?.note}
-              />
-            </div>
+            <Fretboard
+              instrument={currentInstrument}
+              highlightPositions={currentPrompt?.validPositions || []}
+              revealed={isRevealed}
+              minFret={config.minFret}
+              maxFret={config.maxFret}
+              noteDisplay={noteDisplay}
+            />
           </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="footer footer-center p-4 bg-base-100 text-base-content/70 border-t border-base-300 text-xs font-mono">
-        <div className="max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>© {new Date().getFullYear()} FretLearn</div>
-          <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
-            <button
-              onClick={() => {
-                setLegalTab('privacy');
-                setIsLegalOpen(true);
-              }}
-              className="link link-hover hover:text-primary transition-colors"
-            >
-              Privacy Policy
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => {
-                setLegalTab('terms');
-                setIsLegalOpen(true);
-              }}
-              className="link link-hover hover:text-primary transition-colors"
-            >
-              Terms of Service
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsCookieConsentOpen(true)}
-              className="link link-hover hover:text-primary transition-colors"
-            >
-              Cookie Preferences
-            </button>
-          </div>
-        </div>
+      <footer className="footer sm:footer-horizontal items-center gap-3 px-4 py-5 sm:px-8 border-t-4 border-(--piping) bg-cabinet text-sm">
+        <aside className="flex items-baseline gap-2">
+          <span className="font-script text-2xl leading-none">FretLearn</span>
+          <span className="opacity-80">Free and open source.</span>
+        </aside>
+        <nav className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-self-end">
+          <a className="link link-hover" href="https://github.com/capsloco/fretboard_app" target="_blank" rel="noreferrer">Source code</a>
+          <button type="button" onClick={() => openLegal('privacy')} className="link link-hover">Privacy</button>
+          <button type="button" onClick={() => openLegal('terms')} className="link link-hover">Terms</button>
+          {isAnalyticsEnabled && (
+            <button type="button" onClick={() => setIsCookieConsentOpen(true)} className="link link-hover">Cookies</button>
+          )}
+        </nav>
       </footer>
 
-      {/* Settings Modal */}
       <SessionSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -550,40 +459,29 @@ export default function App() {
         onChangeTheme={setCurrentTheme}
       />
 
-      {/* Auth Modal */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => {
           setIsAuthOpen(false);
           setAuthModalMode('normal');
         }}
-        user={user}
         setUser={setUser}
         initialMode={authModalMode}
-        onOpenLegal={(tab) => {
-          setLegalTab(tab || 'privacy');
-          setIsLegalOpen(true);
-        }}
+        onOpenLegal={openLegal}
       />
 
-      {/* Legal & Privacy Modal */}
       <LegalModal
         isOpen={isLegalOpen}
         onClose={() => setIsLegalOpen(false)}
         initialTab={legalTab}
       />
 
-      {/* Cookie Consent Banner */}
       <CookieConsentBanner
         isOpen={isCookieConsentOpen}
         onClose={() => setIsCookieConsentOpen(false)}
-        onOpenLegal={() => {
-          setLegalTab('privacy');
-          setIsLegalOpen(true);
-        }}
+        onOpenLegal={() => openLegal('privacy')}
       />
 
-      {/* Vercel Speed Insights */}
       <SpeedInsights />
     </div>
   );

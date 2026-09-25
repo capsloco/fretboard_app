@@ -3,52 +3,30 @@
   <head>
     <script>
       (function() {
-        var theme = localStorage.getItem('fretlearn_theme') || 'emerald';
+        var theme = localStorage.getItem('fretlearn_theme');
+        if (theme !== 'tweed' && theme !== 'tolex') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'tolex' : 'tweed';
+        }
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
-    <!-- Google Consent Mode v2 Defaults -->
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      var savedConsent = localStorage.getItem('fretlearn_cookie_consent');
-      gtag('consent', 'default', {
-        'analytics_storage': savedConsent === 'granted' ? 'granted' : 'denied',
-        'ad_storage': 'denied',
-        'ad_user_data': 'denied',
-        'ad_personalization': 'denied'
-      });
-    </script>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-5THRLVG4');</script>
-    <!-- End Google Tag Manager -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#c8a46a" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1714" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <title>FretLearn | A Free Fretboard Trainer</title>
-    <meta name="description" content="FretLearn is a free app that helps you learn the fretboard by testing and improving your skills over time. 100% free." />
+    <meta name="description" content="Learn every note on the guitar or bass neck. FretLearn listens to what you play and scores every answer. Free and open source." />
     <!-- Open Graph / Social Media Meta -->
     <meta property="og:title" content="FretLearn | A Free Fretboard Trainer" />
-    <meta property="og:description" content="FretLearn is a free app that helps you learn the fretboard by testing and improving your skills over time. 100% free." />
+    <meta property="og:description" content="Learn every note on the guitar or bass neck. FretLearn listens to what you play and scores every answer. Free and open source." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://fretlearn.app" />
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-base-200 text-base-content font-sans antialiased min-h-screen">
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5THRLVG4"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
+  <body class="antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

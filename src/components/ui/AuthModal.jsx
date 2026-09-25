@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, LogIn, Mail, Lock, Sparkles, CheckCircle2, AlertCircle, KeyRound, ArrowLeft } from 'lucide-react';
+import { X, Mail, Lock, CheckCircle2, AlertCircle, KeyRound, ArrowLeft } from 'lucide-react';
+import Modal from './Modal';
 import { signInWithGoogle, supabase, isSupabaseConfigured } from '../../lib/supabase';
 
-export default function AuthModal({ isOpen, onClose, user, setUser, initialMode = 'normal', onOpenLegal }) {
-  const [activeTab, setActiveTab] = useState('google'); // 'google' | 'magic' | 'password'
+export default function AuthModal({ isOpen, onClose, setUser, initialMode = 'normal', onOpenLegal }) {
+  const [activeTab, setActiveTab] = useState('magic'); // 'magic' | 'password'
   const [mode, setMode] = useState(initialMode); // 'normal' | 'forgot' | 'update_password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,8 +18,6 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
       setMode(initialMode);
     }
   }, [initialMode, isOpen]);
-
-  if (!isOpen) return null;
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -41,7 +40,7 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
         options: { emailRedirectTo: window.location.origin }
       });
       if (error) throw error;
-      setMessage({ type: 'success', text: '✨ Magic login link sent to your email! Check your inbox.' });
+      setMessage({ type: 'success', text: 'Sign-in link sent. Check your inbox.' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to send magic link.' });
     } finally {
@@ -94,7 +93,7 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
         redirectTo: window.location.origin
       });
       if (error) throw error;
-      setMessage({ type: 'success', text: '🔐 Password reset link sent! Check your email inbox.' });
+      setMessage({ type: 'success', text: 'Password reset link sent. Check your inbox.' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to send reset link.' });
     } finally {
@@ -110,7 +109,7 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      setMessage({ type: 'success', text: '🎉 Password updated successfully!' });
+      setMessage({ type: 'success', text: 'Password updated.' });
       setTimeout(() => {
         setMode('normal');
         onClose();
@@ -122,307 +121,134 @@ export default function AuthModal({ isOpen, onClose, user, setUser, initialMode 
     }
   };
 
+  const title = mode === 'forgot' ? 'Reset your password' : mode === 'update_password' ? 'Set a new password' : 'Sign in';
+  const subtitle = mode === 'forgot'
+    ? 'We’ll email you a link to reset it.'
+    : mode === 'update_password'
+      ? 'Choose a new password for your account.'
+      : 'Keep your stats, custom instruments and settings in sync across devices.';
+
+  const emailField = (
+    <label className="input w-full">
+      <Mail className="size-4 opacity-50" aria-hidden="true" />
+      <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" aria-label="Email address" />
+    </label>
+  );
+
   return (
-    <div className="modal modal-open bg-base-900/80 backdrop-blur-md z-[100]">
-      <div className="modal-box relative w-full max-w-md bg-base-100 border border-base-300 shadow-2xl p-6 sm:p-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="btn btn-sm btn-ghost btn-circle absolute top-4 right-4 font-bold"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <Modal open={isOpen} onClose={onClose} labelledBy="auth-title" className="max-w-md">
+      <button type="button" onClick={onClose} className="btn btn-sm btn-ghost btn-square absolute top-3 right-3" aria-label="Close">
+        <X className="size-5" />
+      </button>
 
-        {/* Modal Header */}
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-sky-400 flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(6,182,212,0.4)]">
-            <LogIn className="w-6 h-6 text-slate-950 stroke-[2.5]" />
-          </div>
-          <h2 className="text-2xl font-black tracking-tight text-white m-0">
-            {mode === 'forgot'
-              ? 'Reset Your Password'
-              : mode === 'update_password'
-              ? 'Set New Password'
-              : 'Sign In to FretLearn'}
-          </h2>
-          <p className="text-xs text-slate-400 font-mono mt-1">
-            {mode === 'forgot'
-              ? 'Enter your email to receive a password reset link'
-              : mode === 'update_password'
-              ? 'Enter your new secure password below'
-              : 'Sync custom instruments, fret settings & stats across devices'}
-          </p>
+      <header className="text-center mb-5">
+        <div className="font-script text-4xl text-secondary leading-none">FretLearn</div>
+        <h2 id="auth-title" className="font-display font-bold uppercase tracking-[0.15em] text-2xl mt-2">{title}</h2>
+        <p className="text-sm opacity-80 mt-1">{subtitle}</p>
+      </header>
+
+      {!isSupabaseConfigured && (
+        <div role="alert" className="alert mb-4 text-sm items-start">
+          <KeyRound className="size-4 mt-0.5" aria-hidden="true" />
+          <span>
+            Accounts are off in this build. Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> to
+            your <code>.env</code> to turn them on. Everything else works without an account.
+          </span>
         </div>
+      )}
 
-        {/* Supabase Missing Config Notice */}
-        {!isSupabaseConfigured && (
-          <div className="p-3 rounded-2xl mb-4 text-xs font-semibold bg-amber-950/80 border border-amber-800/80 text-amber-300 flex items-start gap-2">
-            <KeyRound className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
-            <div>
-              <div className="font-bold">Supabase Keys Missing in .env</div>
-              <div className="text-[11px] text-amber-200/80 font-normal mt-0.5">
-                Add <code className="font-mono text-cyan-300">VITE_SUPABASE_URL</code> and <code className="font-mono text-cyan-300">VITE_SUPABASE_PUBLISHABLE_KEY</code> to your <code className="font-mono text-amber-300">.env</code> file to enable live sign in.
-              </div>
-            </div>
+      {message && (
+        <div role="status" className={`alert alert-soft mb-4 text-sm ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+          {message.type === 'success' ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <AlertCircle className="size-4" aria-hidden="true" />}
+          <span>{message.text}</span>
+        </div>
+      )}
+
+      {mode === 'update_password' && (
+        <form onSubmit={handleUpdatePassword} className="space-y-3">
+          <label className="input w-full">
+            <Lock className="size-4 opacity-50" aria-hidden="true" />
+            <input type="password" required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" aria-label="New password" />
+          </label>
+          <button type="submit" disabled={loading} className="btn btn-primary w-full font-display uppercase tracking-wider">
+            Update password
+          </button>
+        </form>
+      )}
+
+      {mode === 'forgot' && (
+        <form onSubmit={handleForgotPassword} className="space-y-3">
+          {emailField}
+          <button type="submit" disabled={loading} className="btn btn-primary w-full font-display uppercase tracking-wider">
+            Send reset link
+          </button>
+          <button type="button" onClick={() => setMode('normal')} className="btn btn-ghost btn-sm w-full">
+            <ArrowLeft className="size-4" /> Back to sign in
+          </button>
+        </form>
+      )}
+
+      {mode === 'normal' && (
+        <div className="space-y-4">
+          <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="btn w-full">
+            <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+            </svg>
+            Continue with Google
+          </button>
+
+          <div className="divider text-xs uppercase tracking-widest opacity-70 my-2">or use email</div>
+
+          <div role="tablist" className="tabs tabs-box tabs-sm">
+            <button type="button" role="tab" aria-selected={activeTab === 'magic'} onClick={() => setActiveTab('magic')} className={`tab flex-1 ${activeTab === 'magic' ? 'tab-active' : ''}`}>
+              Email link
+            </button>
+            <button type="button" role="tab" aria-selected={activeTab === 'password'} onClick={() => setActiveTab('password')} className={`tab flex-1 ${activeTab === 'password' ? 'tab-active' : ''}`}>
+              Password
+            </button>
           </div>
-        )}
 
-        {/* Status Message */}
-        {message && (
-          <div
-            className={`p-3 rounded-2xl mb-4 text-xs font-semibold flex items-center gap-2 ${
-              message.type === 'success'
-                ? 'bg-emerald-950/80 border border-emerald-800/80 text-emerald-300'
-                : 'bg-rose-950/80 border border-rose-800/80 text-rose-300'
-            }`}
-          >
-            {message.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-            ) : (
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            )}
-            <span>{message.text}</span>
-          </div>
-        )}
-
-        {/* MODE: Update Password */}
-        {mode === 'update_password' && (
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div>
-              <label className="block text-xs font-mono text-base-content/70 mb-1">New Password</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="input input-bordered w-full pl-9 text-sm"
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full font-bold"
-            >
-              Update Password
-            </button>
-          </form>
-        )}
-
-        {/* MODE: Forgot Password */}
-        {mode === 'forgot' && (
-          <form onSubmit={handleForgotPassword} className="space-y-4">
-            <div>
-              <label className="block text-xs font-mono text-base-content/70 mb-1">Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="input input-bordered w-full pl-9 text-sm"
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full font-bold"
-            >
-              Send Reset Link
-            </button>
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => setMode('normal')}
-                className="btn btn-ghost btn-xs font-mono text-base-content/70 flex items-center justify-center gap-1.5 mx-auto"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
+          {activeTab === 'magic' && (
+            <form onSubmit={handleMagicLink} className="space-y-3">
+              {emailField}
+              <button type="submit" disabled={loading} className="btn btn-primary w-full font-display uppercase tracking-wider">
+                Email me a sign-in link
               </button>
-            </div>
-          </form>
-        )}
+            </form>
+          )}
 
-        {/* MODE: Normal Sign In / Sign Up */}
-        {mode === 'normal' && (
-          <div className="space-y-4">
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-              className="btn btn-outline w-full flex items-center justify-center gap-3 font-bold"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-
-            <div className="relative flex items-center justify-center my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-base-300" />
-              </div>
-              <span className="relative bg-base-100 px-3 text-[11px] font-mono text-base-content/60 uppercase">
-                Or use email
-              </span>
-            </div>
-
-            {/* Tab Selector */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-base-200 rounded-xl border border-base-300 text-xs font-mono">
-              <button
-                onClick={() => setActiveTab('magic')}
-                className={`btn btn-xs font-bold ${
-                  activeTab === 'magic'
-                    ? 'btn-primary'
-                    : 'btn-ghost'
-                }`}
-              >
-                Magic Link
+          {activeTab === 'password' && (
+            <form onSubmit={handleEmailPassword} className="space-y-3">
+              {emailField}
+              <label className="input w-full">
+                <Lock className="size-4 opacity-50" aria-hidden="true" />
+                <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" aria-label="Password" />
+              </label>
+              <button type="submit" disabled={loading} className="btn btn-primary w-full font-display uppercase tracking-wider">
+                {isSignUp ? 'Create account' : 'Sign in'}
               </button>
-              <button
-                onClick={() => setActiveTab('password')}
-                className={`btn btn-xs font-bold ${
-                  activeTab === 'password'
-                    ? 'btn-primary'
-                    : 'btn-ghost'
-                }`}
-              >
-                Password
-              </button>
-            </div>
-
-            {/* Magic Link Form */}
-            {activeTab === 'magic' && (
-              <form onSubmit={handleMagicLink} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-mono text-base-content/70 mb-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="input input-bordered w-full pl-9 text-sm"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary w-full font-bold flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Send Magic Link</span>
+              <div className="flex items-center justify-between text-sm">
+                <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="link link-hover">
+                  {isSignUp ? 'I already have an account' : 'Create an account'}
                 </button>
-              </form>
-            )}
-
-            {/* Password Form */}
-            {activeTab === 'password' && (
-              <form onSubmit={handleEmailPassword} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-mono text-base-content/70 mb-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="input input-bordered w-full pl-9 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-mono text-base-content/70">Password</label>
-                    {!isSignUp && (
-                      <button
-                        type="button"
-                        onClick={() => setMode('forgot')}
-                        className="text-[11px] font-mono text-primary hover:underline"
-                      >
-                        Forgot password?
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-base-content/50 absolute left-3 top-3.5" />
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="input input-bordered w-full pl-9 text-sm"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary w-full font-bold"
-                >
-                  {isSignUp ? 'Create Account' : 'Sign In'}
-                </button>
-
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-xs font-mono text-base-content/70 hover:text-primary underline"
-                  >
-                    {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                {!isSignUp && (
+                  <button type="button" onClick={() => setMode('forgot')} className="link link-hover">
+                    Forgot password?
                   </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
-
-        {/* Legal Footer Links */}
-        <div className="pt-3 border-t border-slate-800/80 text-center text-[11px] font-mono text-slate-500 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => onOpenLegal && onOpenLegal('privacy')}
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Privacy Policy
-          </button>
-          <span>•</span>
-          <button
-            type="button"
-            onClick={() => onOpenLegal && onOpenLegal('terms')}
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Terms of Service
-          </button>
+                )}
+              </div>
+            </form>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+
+      <footer className="mt-5 pt-3 border-t border-base-300 flex justify-center gap-4 text-xs opacity-80">
+        <button type="button" onClick={() => onOpenLegal?.('privacy')} className="link link-hover">Privacy</button>
+        <button type="button" onClick={() => onOpenLegal?.('terms')} className="link link-hover">Terms</button>
+      </footer>
+    </Modal>
   );
 }

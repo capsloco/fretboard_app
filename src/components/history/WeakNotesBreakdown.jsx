@@ -4,15 +4,15 @@ import { Target } from 'lucide-react';
 
 export default function WeakNotesBreakdown({ notes }) {
   return (
-    <div className="bg-base-100 border border-base-300 rounded-2xl p-4 sm:p-5 shadow-md">
-      <div className="flex items-center gap-2 font-bold text-base-content mb-4">
-        <Target className="w-4 h-4 text-primary" />
+    <div className="card bg-base-100 shadow-md p-4 sm:p-5">
+      <h3 className="flex items-center gap-2 font-display font-bold uppercase tracking-[0.15em] mb-4">
+        <Target className="size-4 text-secondary" aria-hidden="true" />
         Weakest Notes
-      </div>
+      </h3>
 
       {!notes || notes.length === 0 ? (
-        <div className="h-40 flex items-center justify-center text-base-content/90 text-sm font-mono text-center px-4">
-          Complete a tracked session to see your weak notes
+        <div className="h-40 flex items-center justify-center text-sm opacity-70 text-center px-4">
+          Finish a pass / fail round to see which notes trip you up
         </div>
       ) : (
         <div style={{ height: Math.max(160, notes.length * 32) }}>
@@ -28,9 +28,15 @@ export default function WeakNotesBreakdown({ notes }) {
               />
               <Tooltip
                 formatter={(value, _name, item) => [`${value}% (${item.payload.correct}/${item.payload.attempts})`, 'Accuracy']}
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 6,
+                  background: 'var(--color-base-100)',
+                  border: '1px solid var(--color-base-300)',
+                  color: 'var(--color-base-content)'
+                }}
               />
-              <Bar dataKey="accuracyPct" radius={[0, 6, 6, 0]}>
+              <Bar dataKey="accuracyPct" radius={[0, 3, 3, 0]}>
                 {notes.map((entry) => (
                   <Cell
                     key={entry.note}

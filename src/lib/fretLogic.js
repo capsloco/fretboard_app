@@ -292,6 +292,15 @@ export function getNoteAtFret(openNote, fret, noteDisplay = 'sharps') {
 }
 
 /**
+ * Inlay dots: 'double' at 12 and 24, 'single' at the usual frets, else null
+ */
+export function getFretMarkerType(fret) {
+  if (fret === 12 || fret === 24) return 'double';
+  if ([3, 5, 7, 9, 15, 17, 19, 21].includes(fret)) return 'single';
+  return null;
+}
+
+/**
  * Find all fretboard positions for a target note within given fret boundaries
  */
 export function findNotePositionsOnNeck(targetNote, instrument, minFret = 0, maxFret = 24) {
@@ -316,8 +325,12 @@ export function findNotePositionsOnNeck(targetNote, instrument, minFret = 0, max
   return positions;
 }
 
+const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
+
 /**
- * Generate a prompt based on session parameters
+ * Generate a prompt based on session parameters.
+ * Only picks notes (and, for string-specific prompts, strings) that actually
+ * have a position inside the fret range, so every prompt is answerable.
  */
 export function generatePrompt({
   promptType = 'global', // 'global' | 'string_specific'
@@ -341,35 +354,29 @@ export function generatePrompt({
       pool = CHROMATIC_SHARPS;
     }
   }
-  
+
   // Filter out previous note if pool has > 1 options
   let availableNotes = pool;
   if (previousNote && pool.length > 1) {
     availableNotes = pool.filter(n => getNoteIndex(n) !== getNoteIndex(previousNote));
   }
 
-  const selectedNote = availableNotes[Math.floor(Math.random() * availableNotes.length)];
+  const playableNotes = availableNotes.filter(
+    n => findNotePositionsOnNeck(n, instrument, minFret, maxFret).length > 0
+  );
+  const selectedNote = pickRandom(playableNotes.length > 0 ? playableNotes : availableNotes);
+  const positions = findNotePositionsOnNeck(selectedNote, instrument, minFret, maxFret);
 
   if (promptType === 'string_specific') {
-    // Pick a random string index (0 to stringCount - 1)
-    const stringIndex = Math.floor(Math.random() * instrument.tuning.length);
+    const stringsWithNote = [...new Set(positions.map(p => p.stringIndex))];
+    const stringIndex = stringsWithNote.length > 0
+      ? pickRandom(stringsWithNote)
+      : Math.floor(Math.random() * instrument.tuning.length);
     const openNote = instrument.tuning[stringIndex];
     // Convert 0-index string to standard string number (String 1 = highest pitch, String N = lowest pitch)
     const displayStringNum = instrument.tuning.length - stringIndex;
-    
-    // Find matching frets on this string within minFret to maxFret
-    const positionsOnString = [];
-    const maxFretToSearch = Math.min(maxFret, instrument.fretCount || 24);
-    for (let fret = Math.max(0, minFret); fret <= maxFretToSearch; fret++) {
-      if (getNoteIndex(getNoteAtFret(openNote, fret, displayMode)) === getNoteIndex(selectedNote)) {
-        positionsOnString.push(fret);
-      }
-    }
-
-    const validPositions = positionsOnString.map(fret => ({
-      stringIndex: stringIndex,
-      fret: fret
-    }));
+    const positionsOnString = positions.filter(p => p.stringIndex === stringIndex);
+    const targetFrets = positionsOnString.map(p => p.fret);
 
     return {
       id: `${Date.now()}-${Math.random()}`,
@@ -378,22 +385,114 @@ export function generatePrompt({
       stringIndex: stringIndex,
       stringDisplayNumber: displayStringNum,
       stringOpenNote: openNote,
-      targetFrets: positionsOnString,
-      validPositions: validPositions,
-      promptText: `Find ${selectedNote} on String ${displayStringNum} (${openNote})`,
-      subText: `Frets ${minFret}–${maxFret}`
+      targetFrets,
+      validPositions: positionsOnString.map(p => ({ stringIndex, fret: p.fret })),
+      promptText: `on the ${openNote} string`,
+      subText: `String ${displayStringNum} · frets ${minFret}–${maxFret}`
     };
   }
-
-  // Global prompt: Find targetNote across all strings in fret range
-  const validPositions = findNotePositionsOnNeck(selectedNote, instrument, minFret, maxFret);
 
   return {
     id: `${Date.now()}-${Math.random()}`,
     note: selectedNote,
     promptType: 'global',
-    validPositions: validPositions,
-    promptText: `Find a ${selectedNote} note`,
-    subText: `${validPositions.length} position${validPositions.length === 1 ? '' : 's'} between Frets ${minFret}–${maxFret}`
+    validPositions: positions,
+    promptText: 'anywhere on the neck',
+    subText: `${positions.length} position${positions.length === 1 ? '' : 's'} · frets ${minFret}–${maxFret}`
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Pitch math: MIDI numbers, open-string octaves & grading             */
+/* MIDI 60 = C4 (middle C), A4 = 440 Hz. Octaves use scientific pitch. */
+/* ------------------------------------------------------------------ */
+
+const A4_MIDI = 69;
+const A4_FREQUENCY = 440;
+
+export function frequencyToMidi(frequency) {
+  return A4_MIDI + 12 * Math.log2(frequency / A4_FREQUENCY);
+}
+
+export function midiToFrequency(midi) {
+  return A4_FREQUENCY * 2 ** ((midi - A4_MIDI) / 12);
+}
+
+/**
+ * Note name + octave for a MIDI number, e.g. 48 -> { name: 'C', octave: 3 }
+ */
+export function midiToNoteLabel(midi, noteDisplay = 'sharps') {
+  const rounded = Math.round(midi);
+  return {
+    name: formatNoteName(rounded, noteDisplay),
+    octave: Math.floor(rounded / 12) - 1
+  };
+}
+
+// Standard open-string pitches, low to high. Used as anchors to work out
+// which octave each string of any tuning sits in.
+const GUITAR_REFERENCE_MIDIS = [30, 35, 40, 45, 50, 55, 59, 64]; // F#1 B1 E2 A2 D3 G3 B3 E4
+const BASS_REFERENCE_MIDIS = [23, 28, 33, 38, 43, 48]; // B0 E1 A1 D2 G2 C3
+
+function referenceStringMidis(instrument) {
+  const count = instrument.tuning.length;
+  const type = instrument.type || (count <= 5 ? 'bass' : 'guitar');
+
+  if (type === 'bass') {
+    if (count === 4) return BASS_REFERENCE_MIDIS.slice(1, 5);
+    if (count <= BASS_REFERENCE_MIDIS.length) return BASS_REFERENCE_MIDIS.slice(0, count);
+  } else if (count <= GUITAR_REFERENCE_MIDIS.length) {
+    return GUITAR_REFERENCE_MIDIS.slice(-count);
+  }
+
+  // Unusual string counts: extend downward in fourths from the top string
+  const top = type === 'bass' ? BASS_REFERENCE_MIDIS.at(-1) : GUITAR_REFERENCE_MIDIS.at(-1);
+  return Array.from({ length: count }, (_, i) => top - (count - 1 - i) * 5);
+}
+
+/**
+ * MIDI pitch of each open string (same order as instrument.tuning, low to high).
+ * Tunings only store note names, so each string's octave is inferred as the one
+ * closest to the standard-tuning string in the same position (drop tunings go
+ * down, e.g. Drop D -> D2, 7-string Drop A -> A1).
+ */
+export function getStringMidis(instrument) {
+  const references = referenceStringMidis(instrument);
+  return instrument.tuning.map((note, i) => {
+    const reference = references[i];
+    const semitonesUp = (getNoteIndex(note) - (reference % 12) + 12) % 12;
+    return semitonesUp < 6 ? reference + semitonesUp : reference + semitonesUp - 12;
+  });
+}
+
+/**
+ * Frequency window worth listening to for an instrument: a couple of semitones
+ * below the lowest open string up to a little above its highest fret.
+ */
+export function getInstrumentFrequencyRange(instrument) {
+  const stringMidis = getStringMidis(instrument);
+  const fretCount = instrument.fretCount || 24;
+  return {
+    minFrequency: midiToFrequency(Math.min(...stringMidis) - 2),
+    maxFrequency: midiToFrequency(Math.max(...stringMidis) + fretCount + 2)
+  };
+}
+
+/**
+ * Grade a detected note against a prompt.
+ * - Global prompts accept the right note in any octave.
+ * - String-specific prompts need the exact pitch that string makes inside the
+ *   fret range, which rules out most wrong-string answers.
+ */
+export function gradeDetectedNote(prompt, detectedMidi, instrument) {
+  const midi = Math.round(detectedMidi);
+  const pitchClassMatch = ((midi % 12) + 12) % 12 === getNoteIndex(prompt.note);
+
+  if (prompt.promptType !== 'string_specific') {
+    return { correct: pitchClassMatch, pitchClassMatch, expectedMidis: null };
+  }
+
+  const openMidi = getStringMidis(instrument)[prompt.stringIndex];
+  const expectedMidis = (prompt.targetFrets || []).map(fret => openMidi + fret);
+  return { correct: expectedMidis.includes(midi), pitchClassMatch, expectedMidis };
 }

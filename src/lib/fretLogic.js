@@ -523,16 +523,31 @@ export function getStringMidis(instrument) {
   });
 }
 
+// Small phone and laptop mics barely pick up a low string's fundamental, so the detector
+// can hear it an octave high. A tuner reading that fits a string's octave counts as that
+// string, but a plain match wins when both fit.
+const OCTAVE_SLIP_PENALTY = 0.5;
+
 /**
- * Index of the open string closest in pitch to a (fractional) MIDI note: the string
- * a tuner assumes you're tuning. Works even when a string is several semitones off.
+ * What a tuner should show for a heard (fractional) MIDI pitch: which open string it is and
+ * how far off, in cents. Works when a string is several semitones out, and when the pitch was
+ * heard an octave high (`octaveSlip`), which keeps the note and cents but not the octave.
+ * @param lockedIndex only consider this string (the player picked it)
+ * @returns {{ stringIndex: number, cents: number, octaveSlip: boolean }}
  */
-export function nearestStringIndex(midiFloat, stringMidis) {
-  let best = 0;
-  stringMidis.forEach((midi, i) => {
-    if (Math.abs(midiFloat - midi) < Math.abs(midiFloat - stringMidis[best])) best = i;
-  });
-  return best;
+export function readTuner(midiFloat, stringMidis, lockedIndex = null) {
+  const indexes = lockedIndex === null ? stringMidis.map((_, i) => i) : [lockedIndex];
+  let best = null;
+  for (const stringIndex of indexes) {
+    for (const octaveSlip of [false, true]) {
+      const offset = midiFloat - (octaveSlip ? 12 : 0) - stringMidis[stringIndex];
+      if (octaveSlip && Math.abs(offset) >= 1) continue;
+      const cost = Math.abs(offset) + (octaveSlip ? OCTAVE_SLIP_PENALTY : 0);
+      if (!best || cost < best.cost) best = { stringIndex, cents: Math.round(offset * 100), octaveSlip, cost };
+    }
+  }
+  const { cost: _cost, ...reading } = best;
+  return reading;
 }
 
 /**

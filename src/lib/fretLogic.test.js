@@ -7,7 +7,7 @@ import {
   getStringMidis,
   gradeDetectedNote,
   midiToNoteLabel,
-  nearestStringIndex,
+  readTuner,
   getStringName
 } from './fretLogic';
 
@@ -89,14 +89,38 @@ describe('generatePrompt', () => {
   });
 });
 
-describe('nearestStringIndex', () => {
+describe('readTuner', () => {
   const strings = getStringMidis(guitar); // E2 A2 D3 G3 B3 E4
+  const read = (midi, locked) => readTuner(midi, strings, locked);
 
-  it('picks the string a note is closest to, even when it is well out of tune', () => {
-    expect(nearestStringIndex(40.3, strings)).toBe(0); // E2, a bit sharp
-    expect(nearestStringIndex(43.4, strings)).toBe(1); // nearer A2 than E2
-    expect(nearestStringIndex(63.2, strings)).toBe(5); // E4, a bit flat
-    expect(nearestStringIndex(59, strings)).toBe(4);
+  it('picks the string being tuned, even when it is well out of tune', () => {
+    expect(read(45.3)).toEqual({ stringIndex: 1, cents: 30, octaveSlip: false }); // A2, a bit sharp
+    expect(read(43.4)).toMatchObject({ stringIndex: 1, cents: -160 }); // A2 well flat, still nearer A than E
+    expect(read(63.2)).toMatchObject({ stringIndex: 5, cents: -80 }); // high E, flat
+    expect(read(59)).toMatchObject({ stringIndex: 4, cents: 0 });
+  });
+
+  it('reads a string heard an octave high as that string, with the right cents', () => {
+    // A2 on a phone mic comes through as A3, which sits between the G and B strings
+    expect(read(57.01)).toEqual({ stringIndex: 1, cents: 1, octaveSlip: true });
+    expect(read(56.7)).toEqual({ stringIndex: 1, cents: -30, octaveSlip: true });
+    expect(read(52.2)).toEqual({ stringIndex: 0, cents: 20, octaveSlip: true }); // low E heard as E3
+  });
+
+  it('prefers a plain match over an octave slip', () => {
+    const dropD = getStringMidis({ ...guitar, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] }); // D2 ... D3
+    expect(readTuner(50.1, dropD)).toEqual({ stringIndex: 2, cents: 10, octaveSlip: false });
+  });
+
+  it('does not fold a badly sharp string onto another string', () => {
+    // A string tuned up to B2: not B3 an octave down, just too high
+    expect(read(47)).toEqual({ stringIndex: 1, cents: 200, octaveSlip: false });
+  });
+
+  it('measures against a locked string', () => {
+    expect(read(57.01, 1)).toEqual({ stringIndex: 1, cents: 1, octaveSlip: true });
+    expect(read(47, 1)).toEqual({ stringIndex: 1, cents: 200, octaveSlip: false });
+    expect(read(40.5, 1)).toMatchObject({ stringIndex: 1, cents: -450 });
   });
 });
 

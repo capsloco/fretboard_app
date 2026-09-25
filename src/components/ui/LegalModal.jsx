@@ -74,7 +74,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) 
             <section className="space-y-2">
               <h4 className="font-display font-bold uppercase tracking-wider text-base">4. Data Storage & Security</h4>
               <p>
-                Your data is stored securely using Supabase infrastructure with encrypted database connections and industry-standard Row Level Security (RLS) policies. Settings are also cached locally in your browser's <code>localStorage</code> for instant zero-latency loading.
+                Your data is stored securely using Supabase infrastructure with encrypted database connections and industry-standard Row Level Security (RLS) policies. Settings are also cached locally in your browser's <code>localStorage</code> for instant zero-latency loading. If you practise without signing in, your scored rounds are kept only in your browser's <code>localStorage</code> on that device and are never sent to us; you can delete them from the Stats screen.
               </p>
             </section>
 

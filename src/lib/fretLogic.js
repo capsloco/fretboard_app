@@ -327,10 +327,34 @@ export function findNotePositionsOnNeck(targetNote, instrument, minFret = 0, max
 
 const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
 
+/** Random item, with the chance of each proportional to weightOf(item) */
+function pickWeighted(items, weightOf) {
+  const weights = items.map(item => Math.max(0, weightOf(item)));
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  if (!(total > 0)) return pickRandom(items);
+  let roll = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+/** Spellings of a pitch class for the display mode ('both' asks for C# and D♭ separately) */
+function spellingsFor(pitchClass, displayMode) {
+  if (displayMode !== 'both') return [formatNoteName(pitchClass, displayMode)];
+  const sharp = CHROMATIC_SHARPS[pitchClass];
+  const flat = CHROMATIC_FLATS[pitchClass];
+  return sharp === flat ? [sharp] : [sharp, flat];
+}
+
 /**
  * Generate a prompt based on session parameters.
  * Only picks notes (and, for string-specific prompts, strings) that actually
  * have a position inside the fret range, so every prompt is answerable.
+ *
+ * focusNotes:  pitch classes (0-11) to ask about instead of the usual pool (weak-spot drills)
+ * noteWeights: 12 weights by pitch class; heavier notes come up more often (adaptive rounds)
  */
 export function generatePrompt({
   promptType = 'global', // 'global' | 'string_specific'
@@ -340,12 +364,16 @@ export function generatePrompt({
   instrument = INSTRUMENT_PRESETS[0],
   noteDisplay = 'sharps',
   useFlats = false,
-  previousNote = null
+  previousNote = null,
+  focusNotes = null,
+  noteWeights = null
 }) {
   const displayMode = noteDisplay || (useFlats ? 'flats' : 'sharps');
 
   let pool = NATURAL_NOTES;
-  if (includeAccidentals) {
+  if (focusNotes?.length) {
+    pool = focusNotes.flatMap(pc => spellingsFor(pc, displayMode));
+  } else if (includeAccidentals) {
     if (displayMode === 'flats') {
       pool = CHROMATIC_FLATS;
     } else if (displayMode === 'both') {
@@ -355,16 +383,19 @@ export function generatePrompt({
     }
   }
 
-  // Filter out previous note if pool has > 1 options
+  // Don't repeat the previous note, unless it's the only one (C# and D♭ count as one note)
   let availableNotes = pool;
-  if (previousNote && pool.length > 1) {
+  if (previousNote && new Set(pool.map(getNoteIndex)).size > 1) {
     availableNotes = pool.filter(n => getNoteIndex(n) !== getNoteIndex(previousNote));
   }
 
   const playableNotes = availableNotes.filter(
     n => findNotePositionsOnNeck(n, instrument, minFret, maxFret).length > 0
   );
-  const selectedNote = pickRandom(playableNotes.length > 0 ? playableNotes : availableNotes);
+  const candidates = playableNotes.length > 0 ? playableNotes : availableNotes;
+  const selectedNote = noteWeights
+    ? pickWeighted(candidates, n => noteWeights[getNoteIndex(n)] ?? 1)
+    : pickRandom(candidates);
   const positions = findNotePositionsOnNeck(selectedNote, instrument, minFret, maxFret);
 
   if (promptType === 'string_specific') {

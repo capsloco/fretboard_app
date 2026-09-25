@@ -47,7 +47,7 @@ export default function AccuracyChart({ sessions }) {
       ) : (
         <div className="h-56 text-primary">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
               <defs>
                 <linearGradient id="accuracyFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="currentColor" stopOpacity={0.35} />

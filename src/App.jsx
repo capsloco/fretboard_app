@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Header from './components/ui/Header';
 import Launchpad from './components/home/Launchpad';
 import DisplayPrompt from './components/session/DisplayPrompt';
@@ -10,8 +10,10 @@ import AuthModal from './components/ui/AuthModal';
 import LegalModal from './components/ui/LegalModal';
 import CookieConsentBanner from './components/ui/CookieConsentBanner';
 import HistoryStatsScreen from './components/history/HistoryStatsScreen';
-import { generatePrompt, gradeDetectedNote, midiToNoteLabel, INSTRUMENT_PRESETS } from './lib/fretLogic';
-import { loadCustomInstruments, savePracticeSession, savePracticeAttempts, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
+import { generatePrompt, gradeDetectedNote, midiToNoteLabel, findNotePositionsOnNeck, formatNoteName, INSTRUMENT_PRESETS } from './lib/fretLogic';
+import { isSupabaseConfigured, loadCustomInstruments, getCurrentUser, loadUserSettings, saveUserSettings, subscribeToAuthChanges } from './lib/supabase';
+import { EMPTY_HISTORY, loadPracticeHistory, recordRound, withSavedRound, clearDeviceHistory } from './lib/practiceHistory';
+import { buildNoteStats, buildNoteWeights, pickFocusNotes } from './lib/statsLogic';
 import { getInitialTheme, applyTheme } from './lib/theme';
 import { isAnalyticsEnabled } from './lib/analytics';
 import { Check, X } from 'lucide-react';
@@ -33,6 +35,7 @@ export default function App() {
   const [currentInstrument, setCurrentInstrument] = useState(INSTRUMENT_PRESETS[0]);
   const [userCustomInstruments, setUserCustomInstruments] = useState([]);
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   // Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -60,7 +63,8 @@ export default function App() {
     flashcardSecondsPerNote: 4,
     flashcardDurationMins: 5,
     inputMode: 'mic', // 'mic' | 'voice' | 'manual'
-    micSensitivity: 6 // 1-10
+    micSensitivity: 6, // 1-10
+    adaptivePrompts: true // notes you miss come up more often
   });
   const noteDisplay = config.noteDisplay || (config.useFlats ? 'flats' : 'sharps');
 
@@ -69,6 +73,9 @@ export default function App() {
   const [currentPrompt, setCurrentPrompt] = useState(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  // Pitch classes a weak-spot round is limited to; null for a normal round
+  const [roundFocus, setRoundFocus] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'account' | 'device' | 'failed'
 
   // Timers
   const [timeLeft, setTimeLeft] = useState(null);
@@ -80,12 +87,20 @@ export default function App() {
   // Per-attempt records for the currently running session (persisted at finishSession)
   const [attempts, setAttempts] = useState([]);
   const promptShownAtRef = useRef(null);
+  // Bumped each round, so a slow save from an earlier round can't overwrite the current one's status
+  const roundIdRef = useRef(0);
+  const userIdRef = useRef(null);
+
+  // Saved rounds and recent answers (account when signed in, else this device)
+  const [practiceHistory, setPracticeHistory] = useState(EMPTY_HISTORY);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // Load saved user settings, custom instruments & auth on mount
   useEffect(() => {
     async function initData() {
       const u = await getCurrentUser();
       setUser(u);
+      setAuthReady(true);
 
       const customInsts = await loadCustomInstruments(u?.id);
       setUserCustomInstruments(customInsts);
@@ -130,6 +145,36 @@ export default function App() {
     };
   }, []);
 
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
+  useEffect(() => {
+    if (!authReady) return undefined;
+    let cancelled = false;
+    setHistoryLoading(true);
+    loadPracticeHistory(userId).then((history) => {
+      if (cancelled) return;
+      setPracticeHistory(history);
+      setHistoryLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [authReady, userId]);
+
+  const noteStats = useMemo(
+    () => buildNoteStats(practiceHistory.attempts, noteDisplay),
+    [practiceHistory.attempts, noteDisplay]
+  );
+  const weakSpots = useMemo(() => pickFocusNotes(noteStats), [noteStats]);
+
+  // Adaptive rounds: weight prompts by saved answers plus this round's
+  const noteWeights = useMemo(() => {
+    if (!config.adaptivePrompts) return null;
+    const roundAnswers = attempts.map(a => ({ note: a.targetNote, isCorrect: a.isCorrect }));
+    return buildNoteWeights([...roundAnswers, ...practiceHistory.attempts]);
+  }, [config.adaptivePrompts, attempts, practiceHistory.attempts]);
+
   // Auto-persist user settings on config / instrument changes
   const saveSettingsToStorage = (updatedConfig, updatedInst) => {
     const targetConfig = updatedConfig || config;
@@ -150,41 +195,63 @@ export default function App() {
   };
 
   const handleInstrumentSelect = (inst) => {
+    // Keep the fret range on the new neck, and save config + instrument together
+    const maxFret = Math.min(config.maxFret, inst.fretCount || 24);
+    const updatedConfig = { ...config, maxFret, minFret: Math.min(config.minFret, maxFret) };
     setCurrentInstrument(inst);
-    if (config.maxFret > inst.fretCount) {
-      handleConfigChange('maxFret', inst.fretCount);
-    }
-    saveSettingsToStorage(config, inst);
+    setConfig(updatedConfig);
+    saveSettingsToStorage(updatedConfig, inst);
   };
 
-  const makePrompt = useCallback((previousNote = null) => generatePrompt({
+  const makePrompt = useCallback((previousNote = null, focusNotes = roundFocus) => generatePrompt({
     promptType: config.promptType,
     includeAccidentals: config.includeAccidentals,
     minFret: config.minFret,
     maxFret: config.maxFret,
     instrument: currentInstrument,
     noteDisplay,
-    previousNote
-  }), [config.promptType, config.includeAccidentals, config.minFret, config.maxFret, currentInstrument, noteDisplay]);
+    previousNote,
+    focusNotes,
+    noteWeights
+  }), [config.promptType, config.includeAccidentals, config.minFret, config.maxFret, currentInstrument, noteDisplay, roundFocus, noteWeights]);
 
-  const showPrompt = useCallback((prompt) => {
+  const showPrompt = useCallback((prompt, sessionMode = config.sessionMode) => {
     setIsRevealed(false);
     setCurrentPrompt(prompt);
     promptShownAtRef.current = Date.now();
-    setTimeLeft(config.sessionMode === 'flashcard' ? config.flashcardSecondsPerNote : null);
+    setTimeLeft(sessionMode === 'flashcard' ? config.flashcardSecondsPerNote : null);
   }, [config.sessionMode, config.flashcardSecondsPerNote]);
 
   const nextPrompt = useCallback(() => {
     showPrompt(makePrompt(currentPrompt?.note));
   }, [showPrompt, makePrompt, currentPrompt]);
 
-  const startNewSession = () => {
+  /** @param focusNotes pitch classes (0-11) for a weak-spot round, or null for a normal round */
+  const startNewSession = (focusNotes = null, sessionMode = config.sessionMode) => {
+    const focus = focusNotes?.length ? focusNotes : null;
+    roundIdRef.current += 1;
     setStats(EMPTY_STATS);
     setAttempts([]);
     setLastResult(null);
+    setSaveStatus(null);
+    setRoundFocus(focus);
     setSessionStartTime(Date.now());
-    showPrompt(makePrompt());
+    showPrompt(makePrompt(null, focus), sessionMode);
     setSessionState('running');
+  };
+
+  // Weak-spot rounds are always scored, so they show up in stats
+  const startWeakSpotRound = (focusNotes) => {
+    // Weak spots come from every saved round, so some may not fit this neck and fret range
+    const playable = focusNotes.filter(pc =>
+      findNotePositionsOnNeck(formatNoteName(pc), currentInstrument, config.minFret, config.maxFret).length > 0);
+    if (playable.length === 0) {
+      const names = focusNotes.map(pc => formatNoteName(pc, noteDisplay)).join(', ');
+      window.alert(`${names} isn’t between frets ${config.minFret} and ${config.maxFret}. Widen the fret range in Settings to drill it.`);
+      return;
+    }
+    if (config.sessionMode !== 'tracked') handleConfigChange('sessionMode', 'tracked');
+    startNewSession(playable, 'tracked');
   };
 
   // Flashcards: count down each note, and stop after the chosen loop duration
@@ -291,12 +358,14 @@ export default function App() {
 
     setSessionState('summary');
 
-    // Flashcard mode is explicitly "no tracking" — don't persist a session/attempts row
-    if (config.sessionMode !== 'tracked') return;
+    // Flashcard mode is explicitly "no tracking", and an empty round has nothing to save
+    if (config.sessionMode !== 'tracked' || stats.totalPrompts === 0) return;
 
-    const sessionId = await savePracticeSession({
+    const roundId = roundIdRef.current;
+    setSaveStatus('saving');
+    const saved = await recordRound({
       instrumentName: currentInstrument.title,
-      sessionType: config.sessionMode,
+      sessionType: roundFocus ? 'weak_spots' : 'tracked',
       promptType: config.promptType,
       totalPrompts: stats.totalPrompts,
       correctCount: stats.correctCount,
@@ -311,11 +380,12 @@ export default function App() {
       maxFret: config.maxFret,
       includeAccidentals: config.includeAccidentals,
       noteDisplay
-    }, user?.id);
+    }, attempts, userId);
 
-    if (sessionId && attempts.length > 0) {
-      await savePracticeAttempts(sessionId, attempts, user?.id);
-    }
+    // A new round or a sign-in/out while saving: this result no longer belongs on screen
+    if (roundId !== roundIdRef.current || userIdRef.current !== userId) return;
+    if (saved) setPracticeHistory(prev => withSavedRound(prev, saved));
+    setSaveStatus(!saved ? 'failed' : saved.partial ? 'partial' : userId ? 'account' : 'device');
   };
 
   const openLegal = (tab) => {
@@ -343,8 +413,10 @@ export default function App() {
             instrument={currentInstrument}
             config={config}
             onChangeConfig={handleConfigChange}
-            onStart={startNewSession}
+            onStart={() => startNewSession()}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            weakSpots={weakSpots}
+            onPractiseWeakSpots={() => startWeakSpotRound(weakSpots.map(n => n.pitchClass))}
           />
         ) : sessionState === 'summary' ? (
           <div className="my-auto py-4">
@@ -357,7 +429,11 @@ export default function App() {
                 sessionType: config.sessionMode
               }}
               attempts={attempts}
-              onRestart={startNewSession}
+              isWeakSpotRound={Boolean(roundFocus)}
+              saveStatus={saveStatus}
+              onRestart={() => startNewSession(roundFocus)}
+              onPractiseNotes={startWeakSpotRound}
+              onOpenAuth={isSupabaseConfigured ? () => setIsAuthOpen(true) : undefined}
               onOpenSettings={() => {
                 setSessionState('idle');
                 setIsSettingsOpen(true);
@@ -367,6 +443,16 @@ export default function App() {
         ) : sessionState === 'history' ? (
           <HistoryStatsScreen
             user={user}
+            history={practiceHistory}
+            loading={historyLoading}
+            noteStats={noteStats}
+            weakSpots={weakSpots}
+            noteDisplay={noteDisplay}
+            onPractiseWeakSpots={startWeakSpotRound}
+            onClearDeviceHistory={() => {
+              clearDeviceHistory();
+              setPracticeHistory(EMPTY_HISTORY);
+            }}
             onBack={() => setSessionState('idle')}
             onOpenAuth={() => setIsAuthOpen(true)}
           />
@@ -388,6 +474,7 @@ export default function App() {
             <DisplayPrompt
               prompt={currentPrompt}
               sessionMode={config.sessionMode}
+              isWeakSpotRound={Boolean(roundFocus)}
               timeLeft={timeLeft}
               secondsPerNote={config.flashcardSecondsPerNote}
               isRevealed={isRevealed}
@@ -454,7 +541,7 @@ export default function App() {
         onInstrumentSaved={(savedInst) => {
           setUserCustomInstruments(prev => [savedInst, ...prev]);
         }}
-        onStartSession={startNewSession}
+        onStartSession={() => startNewSession()}
         currentTheme={currentTheme}
         onChangeTheme={setCurrentTheme}
       />

@@ -12,3 +12,8 @@ export function formatDate(isoString) {
     year: 'numeric'
   });
 }
+
+/** Time to find a note, e.g. 2140 -> '2.1s' */
+export function formatResponseTime(ms) {
+  return `${(ms / 1000).toFixed(1)}s`;
+}

@@ -204,6 +204,20 @@ export default function SessionSettingsModal({
               </fieldset>
             </div>
 
+            <fieldset className="fieldset">
+              <legend className={legendClass}>Weak notes</legend>
+              <label className="label cursor-pointer gap-3">
+                <input
+                  type="checkbox"
+                  checked={config.adaptivePrompts}
+                  onChange={(e) => onChangeConfig('adaptivePrompts', e.target.checked)}
+                  className="toggle toggle-sm toggle-primary"
+                />
+                <span className="text-base-content">Ask the notes I miss more often</span>
+              </label>
+              <p className="label whitespace-normal">Uses your stats and this round’s misses. Turn off for fully random notes.</p>
+            </fieldset>
+
             <FretRangeSlider
               minFret={config.minFret}
               maxFret={config.maxFret}

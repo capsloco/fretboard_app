@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, SlidersHorizontal, Mic, Speech, Keyboard } from 'lucide-react';
+import { Play, SlidersHorizontal, Mic, Speech, Keyboard, Crosshair } from 'lucide-react';
 import { findMatchingTuningPreset } from '../../lib/fretLogic';
 import { isPitchDetectionSupported } from '../../lib/pitchDetection';
 import { isSpeechRecognitionSupported } from '../../lib/voice';
@@ -25,7 +25,7 @@ function Screw({ className }) {
   );
 }
 
-export default function Launchpad({ instrument, config, onChangeConfig, onStart, onOpenSettings }) {
+export default function Launchpad({ instrument, config, onChangeConfig, onStart, onOpenSettings, weakSpots = [], onPractiseWeakSpots }) {
   const tuning = findMatchingTuningPreset(instrument.tuning, instrument.stringCount);
   const tuningName = instrument.tuningId === 'custom' || !tuning ? 'Custom' : tuning.name;
   const activeMode = INPUT_MODES.find(m => m.id === config.inputMode) ?? INPUT_MODES[0];
@@ -62,6 +62,16 @@ export default function Launchpad({ instrument, config, onChangeConfig, onStart,
             <SlidersHorizontal className="size-5" /> Settings
           </button>
         </div>
+        {weakSpots.length > 0 && onPractiseWeakSpots && (
+          <div className="mt-5 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+            <span className="text-sm opacity-80">
+              Your weak spots: <strong className="font-display text-base tracking-wide">{weakSpots.map(n => n.note).join(' · ')}</strong>
+            </span>
+            <button type="button" onClick={onPractiseWeakSpots} className="btn btn-sm btn-secondary font-display uppercase tracking-wider">
+              <Crosshair className="size-4" /> Drill them
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-5 gap-4 w-full max-w-4xl mx-auto">

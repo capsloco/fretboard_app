@@ -35,8 +35,12 @@ const levelPercent = (db) =>
 /**
  * Analog-style meter: the needle shows how sharp or flat the note is,
  * the window shows the note it hears.
+ *
+ * targetMidi: measure against this pitch instead of the nearest note (the tuner);
+ *             the needle pins at the end of the scale when it's more than 50 cents off
+ * inTuneCents: half-width of the in-tune band
  */
-export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', className = '' }) {
+export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', targetMidi = null, inTuneCents = 10, className = '' }) {
   const frequency = frame?.frequency ?? frame?.heldFrequency ?? null;
   const isLive = Boolean(frame?.frequency);
 
@@ -45,13 +49,15 @@ export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', class
   if (frequency) {
     const midiFloat = frequencyToMidi(frequency);
     const midi = Math.round(midiFloat);
-    angle = (midiFloat - midi) * 100 * DEGREES_PER_CENT;
+    const cents = (midiFloat - (targetMidi ?? midi)) * 100;
+    angle = Math.max(-50, Math.min(50, cents)) * DEGREES_PER_CENT;
     label = midiToNoteLabel(midi, noteDisplay);
   }
 
   const level = levelPercent(frame?.levelDb ?? -Infinity);
   const gate = levelPercent(gateDb);
   const signalOn = Number.isFinite(frame?.levelDb) && frame.levelDb >= gateDb;
+  const band = inTuneCents * DEGREES_PER_CENT;
 
   return (
     <div className={`relative rounded-box border-4 border-[#1c1916] shadow-inner overflow-hidden ${className}`}>
@@ -59,7 +65,7 @@ export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', class
       <div className="relative bg-(image:--meter-face) text-(--meter-ink)">
         <svg viewBox="0 0 200 132" className="block w-full" role="img" aria-label={label ? `Hearing ${label.name}${label.octave}` : 'No note detected'}>
           {/* In-tune band */}
-          <path d={arc(-9, 9, SCALE_RADIUS)} className="stroke-accent" strokeWidth="8" fill="none" opacity="0.85" />
+          <path d={arc(-band, band, SCALE_RADIUS)} className="stroke-accent" strokeWidth="8" fill="none" opacity="0.85" />
           {/* Scale */}
           <path d={arc(-45, 45, SCALE_RADIUS)} stroke="currentColor" strokeWidth="1.2" fill="none" />
           {TICKS.map((cents) => {

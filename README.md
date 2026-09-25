@@ -12,7 +12,9 @@ Free, open source, and runs entirely in the browser. Live at [fretlearn.app](htt
 - **Hears what you play.** Pick up your instrument, press start and play the note on screen. The right note scores a
   point; any other note is a miss and you move on. No tapping, no honour system.
 - **Two kinds of prompt.** "Find C" anywhere in your fret range, or "find C on the A string". String prompts only accept
-  the exact pitch that string makes inside the range, so the same note on the wrong string usually won't count.
+  the exact pitch that string makes inside the range, so the same note on the wrong string usually won't count. They
+  can pick a string at random or stay on one you choose, and say "low E" or "high E" when two strings share a note.
+- **Built-in tuner.** The same needle meter as the practice screen, set to your instrument's tuning.
 - **Any instrument you tune.** 6- and 7-string guitar, 4- and 5-string bass, drop, open and modal tunings, or build your
   own with 4–8 strings and 12–24 frets.
 - **Shows you the answer.** A fretboard with real string gauges and inlays lights up every position of the note.

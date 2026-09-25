@@ -349,12 +349,29 @@ function spellingsFor(pitchClass, displayMode) {
 }
 
 /**
+ * A string's name for prompts: 'A', or 'low E' / 'high E' (and 'middle D' in tunings
+ * like DADGAD) when more than one string has the same open note.
+ */
+export function getStringName(tuning, stringIndex) {
+  const note = tuning[stringIndex];
+  const sameNote = tuning
+    .map((n, i) => (getNoteIndex(n) === getNoteIndex(note) ? i : -1))
+    .filter(i => i !== -1);
+  if (sameNote.length === 1) return note;
+  if (stringIndex === sameNote[0]) return `low ${note}`;
+  if (stringIndex === sameNote.at(-1)) return `high ${note}`;
+  return `middle ${note}`;
+}
+
+/**
  * Generate a prompt based on session parameters.
  * Only picks notes (and, for string-specific prompts, strings) that actually
  * have a position inside the fret range, so every prompt is answerable.
  *
  * focusNotes:  pitch classes (0-11) to ask about instead of the usual pool (weak-spot drills)
  * noteWeights: 12 weights by pitch class; heavier notes come up more often (adaptive rounds)
+ * stringIndex: for string prompts, always this string (0 = lowest) instead of a random one.
+ *              Falls back to any string if none of the notes are on it inside the fret range.
  */
 export function generatePrompt({
   promptType = 'global', // 'global' | 'string_specific'
@@ -366,7 +383,8 @@ export function generatePrompt({
   useFlats = false,
   previousNote = null,
   focusNotes = null,
-  noteWeights = null
+  noteWeights = null,
+  stringIndex: fixedStringIndex = null
 }) {
   const displayMode = noteDisplay || (useFlats ? 'flats' : 'sharps');
 
@@ -389,9 +407,18 @@ export function generatePrompt({
     availableNotes = pool.filter(n => getNoteIndex(n) !== getNoteIndex(previousNote));
   }
 
-  const playableNotes = availableNotes.filter(
-    n => findNotePositionsOnNeck(n, instrument, minFret, maxFret).length > 0
-  );
+  const onNeck = n => findNotePositionsOnNeck(n, instrument, minFret, maxFret);
+  let fixedString = promptType === 'string_specific'
+    && Number.isInteger(fixedStringIndex)
+    && fixedStringIndex >= 0
+    && fixedStringIndex < instrument.tuning.length
+    ? fixedStringIndex
+    : null;
+  let playableNotes = availableNotes.filter(n => onNeck(n).some(p => fixedString === null || p.stringIndex === fixedString));
+  if (fixedString !== null && playableNotes.length === 0) {
+    fixedString = null;
+    playableNotes = availableNotes.filter(n => onNeck(n).length > 0);
+  }
   const candidates = playableNotes.length > 0 ? playableNotes : availableNotes;
   const selectedNote = noteWeights
     ? pickWeighted(candidates, n => noteWeights[getNoteIndex(n)] ?? 1)
@@ -400,9 +427,9 @@ export function generatePrompt({
 
   if (promptType === 'string_specific') {
     const stringsWithNote = [...new Set(positions.map(p => p.stringIndex))];
-    const stringIndex = stringsWithNote.length > 0
+    const stringIndex = fixedString ?? (stringsWithNote.length > 0
       ? pickRandom(stringsWithNote)
-      : Math.floor(Math.random() * instrument.tuning.length);
+      : Math.floor(Math.random() * instrument.tuning.length));
     const openNote = instrument.tuning[stringIndex];
     // Convert 0-index string to standard string number (String 1 = highest pitch, String N = lowest pitch)
     const displayStringNum = instrument.tuning.length - stringIndex;
@@ -418,7 +445,7 @@ export function generatePrompt({
       stringOpenNote: openNote,
       targetFrets,
       validPositions: positionsOnString.map(p => ({ stringIndex, fret: p.fret })),
-      promptText: `on the ${openNote} string`,
+      promptText: `on the ${getStringName(instrument.tuning, stringIndex)} string`,
       subText: `String ${displayStringNum} · frets ${minFret}–${maxFret}`
     };
   }
@@ -494,6 +521,18 @@ export function getStringMidis(instrument) {
     const semitonesUp = (getNoteIndex(note) - (reference % 12) + 12) % 12;
     return semitonesUp < 6 ? reference + semitonesUp : reference + semitonesUp - 12;
   });
+}
+
+/**
+ * Index of the open string closest in pitch to a (fractional) MIDI note: the string
+ * a tuner assumes you're tuning. Works even when a string is several semitones off.
+ */
+export function nearestStringIndex(midiFloat, stringMidis) {
+  let best = 0;
+  stringMidis.forEach((midi, i) => {
+    if (Math.abs(midiFloat - midi) < Math.abs(midiFloat - stringMidis[best])) best = i;
+  });
+  return best;
 }
 
 /**

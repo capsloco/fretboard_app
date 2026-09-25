@@ -1,6 +1,6 @@
 import React from 'react';
-import { Play, SlidersHorizontal, Mic, Speech, Keyboard, Crosshair } from 'lucide-react';
-import { findMatchingTuningPreset } from '../../lib/fretLogic';
+import { Play, SlidersHorizontal, Mic, Speech, Keyboard, Crosshair, Gauge } from 'lucide-react';
+import { findMatchingTuningPreset, getStringName } from '../../lib/fretLogic';
 import { isPitchDetectionSupported } from '../../lib/pitchDetection';
 import { isSpeechRecognitionSupported } from '../../lib/voice';
 
@@ -11,7 +11,7 @@ const INPUT_MODES = [
 ];
 
 const STEPS = [
-  { title: 'Plug in', body: 'Allow the mic when your browser asks. Tune up first.' },
+  { title: 'Plug in', body: 'Allow the mic when your browser asks, then tune up with the Tuner.' },
   { title: 'Read the note', body: 'Every round shows a note, and sometimes the string to find it on.' },
   { title: 'Play it', body: 'Right note, next prompt. Wrong note counts as a miss.' }
 ];
@@ -25,7 +25,7 @@ function Screw({ className }) {
   );
 }
 
-export default function Launchpad({ instrument, config, onChangeConfig, onStart, onOpenSettings, weakSpots = [], onPractiseWeakSpots }) {
+export default function Launchpad({ instrument, config, onChangeConfig, onStart, onOpenSettings, onOpenTuner, weakSpots = [], onPractiseWeakSpots }) {
   const tuning = findMatchingTuningPreset(instrument.tuning, instrument.stringCount);
   const tuningName = instrument.tuningId === 'custom' || !tuning ? 'Custom' : tuning.name;
   const activeMode = INPUT_MODES.find(m => m.id === config.inputMode) ?? INPUT_MODES[0];
@@ -35,7 +35,11 @@ export default function Launchpad({ instrument, config, onChangeConfig, onStart,
     ['Tuning', `${tuningName} · ${instrument.tuning.join(' ')}`],
     ['Frets', `${config.minFret} to ${config.maxFret}`],
     ['Notes', config.includeAccidentals ? 'All twelve' : 'Naturals only'],
-    ['Prompts', config.promptType === 'string_specific' ? 'Note + string' : 'Note anywhere'],
+    ['Prompts', config.promptType !== 'string_specific'
+      ? 'Note anywhere'
+      : config.promptStringIndex != null && config.promptStringIndex < instrument.tuning.length
+        ? `Note on the ${getStringName(instrument.tuning, config.promptStringIndex)} string`
+        : 'Note + string'],
     ['Round', config.sessionMode === 'tracked' ? 'Pass / fail, scored' : `Flashcards, ${config.flashcardSecondsPerNote}s each`]
   ];
 
@@ -57,6 +61,14 @@ export default function Launchpad({ instrument, config, onChangeConfig, onStart,
         <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <button type="button" onClick={onStart} className="btn btn-primary btn-lg font-display uppercase tracking-widest px-10">
             <Play className="size-5 fill-current" /> Start practice
+          </button>
+          <button
+            type="button"
+            onClick={onOpenTuner}
+            disabled={!isPitchDetectionSupported()}
+            className="btn btn-lg font-display uppercase tracking-widest"
+          >
+            <Gauge className="size-5" /> Tuner
           </button>
           <button type="button" onClick={onOpenSettings} className="btn btn-lg font-display uppercase tracking-widest">
             <SlidersHorizontal className="size-5" /> Settings

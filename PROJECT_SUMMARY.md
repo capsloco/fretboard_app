@@ -24,7 +24,9 @@ practice with a recap at the end and nothing saved.
    `focusNotes` (pitch classes) to limit the pool.
 2. `InputPanel` owns the answer input for the chosen mode:
    - **Mic**: `usePitchListener` runs `PitchListener` (`lib/pitchDetection.js`): YIN pitch detection on the raw mic
-     signal, then `NoteTracker` turns steady pitches into note events.
+     signal (loosened for small mics, with a clarity score), then `NoteTracker` turns steady pitches into note
+     events. The tuner (`components/tuner/TunerModal.jsx`) feeds the same frames to `TunerTracker` (`lib/tuner.js`)
+     for string choice, needle smoothing and the in-tune verdict.
    - **Voice**: `lib/voice.js` wraps the Web Speech API and matches whole words ("got it", "missed").
    - **Keys**: Space / Enter score a point, M / Backspace a miss, in every mode.
 3. `App.handleDetectedNote` grades a note with `gradeDetectedNote()`: global prompts accept any octave, string prompts

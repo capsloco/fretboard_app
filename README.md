@@ -14,7 +14,9 @@ Free, open source, and runs entirely in the browser. Live at [fretlearn.app](htt
 - **Two kinds of prompt.** "Find C" anywhere in your fret range, or "find C on the A string". String prompts only accept
   the exact pitch that string makes inside the range, so the same note on the wrong string usually won't count. They
   can pick a string at random or stay on one you choose, and say "low E" or "high E" when two strings share a note.
-- **Built-in tuner.** The same needle meter as the practice screen, set to your instrument's tuning.
+- **Built-in tuner.** The same needle meter as the practice screen, set to your instrument's tuning. It follows
+  the string you play, or locks onto one you tap, and works with a phone mic that loses a low string's
+  fundamental.
 - **Any instrument you tune.** 6- and 7-string guitar, 4- and 5-string bass, drop, open and modal tunings, or build your
   own with 4–8 strings and 12–24 frets.
 - **Shows you the answer.** A fretboard with real string gauges and inlays lights up every position of the note.
@@ -34,18 +36,27 @@ All audio processing happens in your browser. Nothing is recorded or uploaded.
 
 1. The mic is opened with the browser's voice-call processing (echo cancellation, noise suppression, auto gain)
    switched off, since those smear pitch and pump the level of a plucked string.
-2. About 30 times a second, the last ~85 ms of audio is downsampled to ~22 kHz and run through the
-   [YIN](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf) pitch detector, limited to the range your instrument can
-   play (a 5-string bass's low B up to a guitar's 24th fret).
+2. About 30 times a second, the newest ~85 ms of audio (~160 ms in the tuner) is downsampled to ~22 kHz and run
+   through the [YIN](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf) pitch detector, limited to the range your
+   instrument can play (a 5-string bass's low B up to a guitar's 24th fret). Classic YIN gives up when nothing dips
+   under its threshold, which on a small mic is most of the time a string rings; this one takes the shortest lag
+   whose dip is nearly as deep as the best one and reports how clear the pitch was. The estimate is then sharpened
+   on the full-rate audio, which is worth a few cents on the high strings.
 3. A note tracker turns those readings into "note played" events: a pitch has to hold steady for about 100 ms,
    a ringing string isn't counted twice, re-plucking the same note counts again, and a pitch change with no fresh
-   attack has to hold much longer.
+   attack has to hold much longer. Readings that aren't clear enough count as silence.
 4. The event is graded against the prompt. Octaves come from the tuning: each string's octave is inferred from
    where that string sits in standard tuning (Drop D's low string is D2, a 5-string bass's low B is B0).
 
-Code: [`src/lib/pitchDetection.js`](src/lib/pitchDetection.js) and `gradeDetectedNote` in
-[`src/lib/fretLogic.js`](src/lib/fretLogic.js). Both are covered by tests that synthesise plucked strings for every
-note on a guitar and a 5-string bass.
+The tuner has its own tracker on top of the same readings: it follows the string nearest to what you play but only
+switches after a few frames running, smooths the needle with a short median and average (a real change still shows
+at once), keeps the last reading for a second when the pitch drops out, and calls a string in tune once the needle
+has sat in the band for a moment. A string heard an octave high, which phone mics do to the low strings, is read as
+that string.
+
+Code: [`src/lib/pitchDetection.js`](src/lib/pitchDetection.js), [`src/lib/tuner.js`](src/lib/tuner.js) and
+`gradeDetectedNote` in [`src/lib/fretLogic.js`](src/lib/fretLogic.js). All are covered by tests that synthesise
+plucked strings for every note on a guitar and a 5-string bass.
 
 **Limits worth knowing**
 
@@ -103,6 +114,7 @@ src/
   hooks/usePitchListener.js
   lib/
     pitchDetection.js      YIN, note tracker, microphone listener
+    tuner.js               tuner readings: string choice, needle smoothing
     fretLogic.js           notes, tunings, prompts, grading
     statsLogic.js          note, string and round stats; weak spots; adaptive weights
     practiceHistory.js     saved rounds (account or this device)

@@ -1,17 +1,33 @@
 // Real-time pitch detection for plucked strings (guitar & bass).
 //
 // - detectPitch()  estimates the fundamental of one buffer with YIN
-//                  (de Cheveigné & Kawahara, 2002).
+//                  (de Cheveigné & Kawahara, 2002), loosened so a noisy phone
+//                  mic still gets a reading.
+// - refinePitch()  sharpens that estimate on the full-rate signal.
 // - NoteTracker    turns the jittery per-frame estimates into discrete
 //                  "note played" events (stability + attack detection).
-// - PitchListener  wires both to the microphone via the Web Audio API.
+// - PitchListener  wires it all to the microphone via the Web Audio API.
 
 import { frequencyToMidi } from './fretLogic';
 
+// A dip in YIN's normalised difference this deep is the pitch outright (the classic threshold)...
 const YIN_THRESHOLD = 0.15;
+// ...and so is any dip within this of the deepest one, taking the shortest lag among them.
+// A phone mic rarely dips under the classic threshold, but the true period still makes the
+// deepest dip; its sub-harmonics (2x, 3x the period) dip as deep and lose on lag.
+const OCTAVE_MARGIN = 0.1;
+// Deepest dip above this: the buffer isn't periodic enough to call a pitch
+const MAX_DIFFERENCE = 0.5;
+// Samples compared per lag. Caps the cost of the difference function (newest audio is used).
+const MAX_WINDOW = 2048;
+// When refining, fit the minimum over lags this fraction of the period apart: for a long period,
+// neighbouring lags differ by less than the noise does, so a wider fit is steadier.
+const REFINE_LAG_FRACTION = 1 / 256;
 const ANALYSIS_INTERVAL_MS = 30;
 const TARGET_ANALYSIS_RATE = 22050;
 const PITCH_HOLD_MS = 600;
+// Audio per analysis. Practice wants a quick answer; the tuner asks for more (steadier cents).
+const DEFAULT_WINDOW_MS = 85;
 
 export function rootMeanSquare(samples) {
   let sum = 0;
@@ -24,55 +40,120 @@ export function toDecibels(rms) {
 }
 
 /**
- * Estimate the fundamental frequency of `samples` with YIN.
- * @returns {{ frequency: number, clarity: number } | null} null when the buffer isn't periodic
+ * YIN steps 2 & 3: the difference function for lags 0..tauMax, normalised by its running mean.
+ * Compares the newest `maxWindow` samples (fewer if the buffer is short) with the samples
+ * `tau` earlier, so the result reflects what was played last, not the start of the buffer.
+ * Values near 0 mean "repeats at this lag"; around 1 means "no better than chance".
  */
-export function detectPitch(samples, sampleRate, {
-  minFrequency = 27,
-  maxFrequency = 1400,
-  threshold = YIN_THRESHOLD
-} = {}) {
-  const tauMin = Math.max(2, Math.floor(sampleRate / maxFrequency));
-  const tauMax = Math.min(Math.ceil(sampleRate / minFrequency), Math.floor(samples.length / 2));
-  if (tauMax <= tauMin + 1) return null;
-
-  // Difference function + cumulative mean normalized difference (YIN steps 2 & 3)
-  const windowSize = samples.length - tauMax;
+export function cumulativeMeanDifference(samples, tauMax, maxWindow = MAX_WINDOW) {
+  const windowSize = Math.min(samples.length - tauMax, maxWindow);
+  const start = samples.length - windowSize - tauMax;
+  const end = start + windowSize;
   const cmnd = new Float32Array(tauMax + 1);
   cmnd[0] = 1;
   let runningSum = 0;
   for (let tau = 1; tau <= tauMax; tau++) {
     let sum = 0;
-    for (let i = 0; i < windowSize; i++) {
+    for (let i = start; i < end; i++) {
       const delta = samples[i] - samples[i + tau];
       sum += delta * delta;
     }
     runningSum += sum;
     cmnd[tau] = runningSum > 0 ? (sum * tau) / runningSum : 1;
   }
+  return cmnd;
+}
 
-  // Absolute threshold (step 4): first dip under the threshold, then walk to its bottom
-  let tau = -1;
+/** Parabolic interpolation (YIN step 5): where the minimum sits between samples */
+function interpolateMinimum(values, index) {
+  const before = values[index - 1];
+  const at = values[index];
+  const after = values[index + 1];
+  const curvature = before + after - 2 * at;
+  if (!(curvature > 0)) return index;
+  return index + (before - after) / (2 * curvature);
+}
+
+/**
+ * Estimate the fundamental frequency of `samples` with YIN.
+ *
+ * Classic YIN takes the first dip under a fixed threshold and gives up when there is none,
+ * which on a phone mic means no reading for most of the time a string rings. This takes the
+ * shortest lag whose dip is under the threshold OR nearly as deep as the deepest dip, and only
+ * gives up when the deepest dip is shallow (not periodic). `clarity` (1 = perfectly periodic)
+ * lets callers be as strict as they need.
+ *
+ * @returns {{ frequency: number, clarity: number } | null} null when the buffer isn't periodic
+ */
+export function detectPitch(samples, sampleRate, {
+  minFrequency = 27,
+  maxFrequency = 1400,
+  threshold = YIN_THRESHOLD,
+  octaveMargin = OCTAVE_MARGIN,
+  maxDifference = MAX_DIFFERENCE,
+  maxWindow = MAX_WINDOW
+} = {}) {
+  const tauMin = Math.max(2, Math.floor(sampleRate / maxFrequency));
+  const tauMax = Math.min(Math.ceil(sampleRate / minFrequency), Math.floor(samples.length / 2));
+  if (tauMax <= tauMin + 1) return null;
+
+  const cmnd = cumulativeMeanDifference(samples, tauMax, maxWindow);
+
+  let deepest = Infinity;
   for (let t = tauMin; t <= tauMax; t++) {
-    if (cmnd[t] < threshold) {
-      while (t < tauMax && cmnd[t + 1] < cmnd[t]) t++;
+    if (cmnd[t] < deepest) deepest = cmnd[t];
+  }
+  if (deepest > maxDifference) return null;
+
+  // Step 4: the shortest lag with a dip (a local minimum) under the limit
+  const limit = Math.max(threshold, deepest + octaveMargin);
+  let tau = -1;
+  for (let t = tauMin; t < tauMax; t++) {
+    if (cmnd[t] < limit && cmnd[t] <= cmnd[t - 1] && cmnd[t] < cmnd[t + 1]) {
       tau = t;
       break;
     }
   }
   if (tau === -1) return null;
 
-  // Parabolic interpolation (step 5) for sub-sample accuracy
-  let refinedTau = tau;
-  if (tau > 1 && tau < tauMax) {
-    const before = cmnd[tau - 1];
-    const at = cmnd[tau];
-    const after = cmnd[tau + 1];
-    const curvature = before + after - 2 * at;
-    if (curvature > 0) refinedTau = tau + (before - after) / (2 * curvature);
-  }
+  return { frequency: sampleRate / interpolateMinimum(cmnd, tau), clarity: 1 - cmnd[tau] };
+}
 
-  return { frequency: sampleRate / refinedTau, clarity: 1 - cmnd[tau] };
+/**
+ * Sharpen a pitch estimate on the full-rate signal.
+ *
+ * Detecting on downsampled audio is cheap but quantises the lag coarsely; evaluating the
+ * difference function at full rate for a few lags around the estimate and interpolating the
+ * minimum recovers the precision, worth a couple of cents on a guitar's high strings.
+ *
+ * @param spread lags either side of the estimate to search (the decimation factor is plenty)
+ * @returns {number} the refined frequency, or `frequency` unchanged if the minimum isn't nearby
+ */
+export function refinePitch(samples, sampleRate, frequency, { spread = 2, maxWindow = 4 * MAX_WINDOW } = {}) {
+  const center = Math.round(sampleRate / frequency);
+  const step = Math.max(1, Math.round(center * REFINE_LAG_FRACTION));
+  const low = center - spread * step;
+  const high = center + spread * step;
+  if (low < 2 || samples.length - high < high) return frequency;
+
+  const windowSize = Math.min(samples.length - high, maxWindow);
+  const start = samples.length - windowSize - high;
+  const end = start + windowSize;
+  const diffs = new Float64Array(2 * spread + 1);
+  let best = 0;
+  for (let k = 0; k < diffs.length; k++) {
+    const tau = low + k * step;
+    let sum = 0;
+    for (let i = start; i < end; i++) {
+      const delta = samples[i] - samples[i + tau];
+      sum += delta * delta;
+    }
+    diffs[k] = sum;
+    if (sum < diffs[best]) best = k;
+  }
+  // The minimum has to sit inside the searched lags to be interpolated
+  if (best === 0 || best === diffs.length - 1) return frequency;
+  return sampleRate / (low + interpolateMinimum(diffs, best) * step);
 }
 
 /**
@@ -83,6 +164,9 @@ export function detectPitch(samples, sampleRate, {
  * or playing a different note reports again. A pitch change without a fresh
  * attack has to hold much longer, so a decaying string drifting onto a
  * harmonic doesn't register as a new note.
+ *
+ * Frames below `minClarity` count as silence: grading wants a note that rings
+ * clearly, not the detector's best guess at a noisy buffer.
  */
 export class NoteTracker {
   constructor({
@@ -92,7 +176,8 @@ export class NoteTracker {
     onsetRatio = 1.8,
     onsetMemory = 8,
     attackWindowMs = 350,
-    refractoryMs = 200
+    refractoryMs = 200,
+    minClarity = 0.85
   } = {}) {
     Object.assign(this, {
       stableFrames,
@@ -101,7 +186,8 @@ export class NoteTracker {
       onsetRatio,
       onsetMemory,
       attackWindowMs,
-      refractoryMs
+      refractoryMs,
+      minClarity
     });
     this.reset();
   }
@@ -123,10 +209,10 @@ export class NoteTracker {
   }
 
   /**
-   * @param {{ frequency: number|null, rms: number, time: number }} frame
+   * @param {{ frequency: number|null, clarity?: number, rms: number, time: number }} frame
    * @returns {{ midi: number, frequency: number, cents: number } | null}
    */
-  update({ frequency, rms, time }) {
+  update({ frequency, clarity = 1, rms, time }) {
     const quietest = this.levels.length > 0 ? Math.min(...this.levels) : rms;
     this.levels.push(rms);
     if (this.levels.length > this.onsetMemory) this.levels.shift();
@@ -138,7 +224,7 @@ export class NoteTracker {
       this.clearCandidate();
     }
 
-    if (!frequency) {
+    if (!frequency || clarity < this.minClarity) {
       this.silentFrames++;
       if (this.silentFrames >= this.releaseFrames) {
         this.lastEmitted = null;
@@ -188,6 +274,14 @@ function decimate(input, output, factor) {
   }
 }
 
+/** Smallest power of two holding `windowMs` of audio (AnalyserNode sizes are powers of two) */
+export function fftSizeFor(sampleRate, windowMs) {
+  const wanted = (sampleRate * windowMs) / 1000;
+  let size = 1024;
+  while (size < wanted && size < 32768) size *= 2;
+  return size;
+}
+
 export function isPitchDetectionSupported() {
   return typeof window !== 'undefined'
     && Boolean(navigator.mediaDevices?.getUserMedia)
@@ -198,17 +292,22 @@ export function isPitchDetectionSupported() {
  * Listens to the microphone and reports frames (for meters) and note events.
  * Browser voice-call processing (echo cancellation, noise suppression, auto
  * gain) is switched off: it smears pitch and pumps the level of a guitar.
+ *
+ * Analysis runs on a timer rather than the animation frame, so its cadence
+ * doesn't depend on how fast the page can paint.
+ *
+ * @param windowMs how much audio each analysis looks at
  */
 export class PitchListener {
-  constructor({ onFrame, onNote }) {
+  constructor({ onFrame, onNote, windowMs = DEFAULT_WINDOW_MS }) {
     this.onFrame = onFrame;
     this.onNote = onNote;
+    this.windowMs = windowMs;
     this.tracker = new NoteTracker();
     this.minFrequency = 27;
     this.maxFrequency = 1400;
     this.gateDb = -50;
-    this.animationFrame = null;
-    this.lastAnalysis = 0;
+    this.timer = null;
     this.lastPitch = null;
   }
 
@@ -241,20 +340,21 @@ export class PitchListener {
 
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     this.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
-    const sampleRate = this.audioContext.sampleRate;
+    this.sampleRate = this.audioContext.sampleRate;
 
     this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = sampleRate > 50000 ? 8192 : 4096;
+    this.analyser.fftSize = fftSizeFor(this.sampleRate, this.windowMs);
     this.analyser.smoothingTimeConstant = 0;
     this.audioContext.createMediaStreamSource(this.stream).connect(this.analyser);
 
-    this.decimation = Math.max(1, Math.floor(sampleRate / TARGET_ANALYSIS_RATE));
-    this.analysisRate = sampleRate / this.decimation;
+    this.decimation = Math.max(1, Math.floor(this.sampleRate / TARGET_ANALYSIS_RATE));
+    this.analysisRate = this.sampleRate / this.decimation;
     this.rawBuffer = new Float32Array(this.analyser.fftSize);
     this.analysisBuffer = new Float32Array(Math.floor(this.analyser.fftSize / this.decimation));
 
     this.tracker.reset();
-    this.animationFrame = requestAnimationFrame(this.tick);
+    this.lastPitch = null;
+    this.timer = setTimeout(this.tick, ANALYSIS_INTERVAL_MS);
     return this.resume();
   }
 
@@ -271,10 +371,10 @@ export class PitchListener {
     return this.audioContext.state === 'running' ? 'listening' : 'suspended';
   }
 
-  tick = (now) => {
-    this.animationFrame = requestAnimationFrame(this.tick);
-    if (now - this.lastAnalysis < ANALYSIS_INTERVAL_MS) return;
-    this.lastAnalysis = now;
+  tick = () => {
+    this.timer = null;
+    if (this.stopped || !this.analyser) return;
+    const now = performance.now();
 
     this.analyser.getFloatTimeDomainData(this.rawBuffer);
     const rms = rootMeanSquare(this.rawBuffer);
@@ -287,6 +387,9 @@ export class PitchListener {
         minFrequency: this.minFrequency,
         maxFrequency: this.maxFrequency
       });
+      if (pitch && this.decimation > 1) {
+        pitch.frequency = refinePitch(this.rawBuffer, this.sampleRate, pitch.frequency, { spread: this.decimation + 1 });
+      }
     }
 
     if (pitch) this.lastPitch = { frequency: pitch.frequency, time: now };
@@ -303,17 +406,20 @@ export class PitchListener {
     const note = this.tracker.update(frame);
     this.onFrame?.(frame);
     if (note) this.onNote?.(note);
+
+    this.timer = setTimeout(this.tick, ANALYSIS_INTERVAL_MS);
   };
 
   stop() {
     this.stopped = true;
-    if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
-    this.animationFrame = null;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
     this.stream?.getTracks().forEach(track => track.stop());
     this.stream = null;
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close().catch(() => {});
     }
     this.audioContext = null;
+    this.analyser = null;
   }
 }

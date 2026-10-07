@@ -1,19 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Mic, Check } from 'lucide-react';
 import Modal from '../ui/Modal';
 import NoteMeter from '../session/NoteMeter';
 import { usePitchListener } from '../../hooks/usePitchListener';
 import {
-  frequencyToMidi,
   getStringMidis,
   midiToFrequency,
   midiToNoteLabel,
-  readTuner,
   findMatchingTuningPreset
 } from '../../lib/fretLogic';
+import { TunerTracker } from '../../lib/tuner';
 
 // Close enough to call a string in tune (the meter's green band matches)
 const IN_TUNE_CENTS = 5;
+// More audio per reading than practice uses: steadier cents, and a low string gets several periods in
+const TUNER_WINDOW_MS = 160;
 
 const MIC_MESSAGES = {
   starting: 'Waiting for the mic…',
@@ -22,33 +23,45 @@ const MIC_MESSAGES = {
   unsupported: 'This browser can’t listen to the mic. Try Chrome, Edge, Firefox or Safari.'
 };
 
-const noop = () => {};
-
-function verdictFor(cents) {
-  if (cents === null) return { text: 'Play one string and let it ring', tone: 'opacity-80' };
-  if (Math.abs(cents) <= IN_TUNE_CENTS) return { text: 'In tune', tone: 'text-success', icon: true };
-  return cents < 0
+function verdictFor(reading) {
+  if (!reading || reading.cents === null) return { text: 'Play one string and let it ring', tone: 'opacity-80' };
+  if (reading.inTune) return { text: 'In tune', tone: 'text-success', icon: true };
+  if (Math.abs(reading.cents) <= IN_TUNE_CENTS) return { text: 'Close · let it ring', tone: '' };
+  return reading.cents < 0
     ? { text: 'Too low · tighten the string', tone: '' }
     : { text: 'Too high · loosen the string', tone: '' };
 }
 
 /** Mounted only while the tuner is open, so the mic is off the rest of the time */
 function Tuner({ instrument, sensitivity, noteDisplay }) {
-  const { status, frame, gateDb, resume } = usePitchListener({ enabled: true, instrument, sensitivity, onNote: noop });
   const stringMidis = useMemo(() => getStringMidis(instrument), [instrument]);
+  const trackerRef = useRef(null);
+  if (!trackerRef.current) trackerRef.current = new TunerTracker({ stringMidis, inTuneCents: IN_TUNE_CENTS });
   const [chosenString, setChosenString] = useState(null); // null = pick the nearest string
+  const [reading, setReading] = useState(null);
 
-  const frequency = frame?.frequency ?? frame?.heldFrequency ?? null;
-  const midiFloat = frequency ? frequencyToMidi(frequency) : null;
-  const reading = midiFloat === null ? null : readTuner(midiFloat, stringMidis, chosenString);
+  useEffect(() => {
+    trackerRef.current.setStrings(stringMidis);
+  }, [stringMidis]);
+  useEffect(() => {
+    trackerRef.current.lock(chosenString);
+  }, [chosenString]);
+
+  const onFrame = useCallback((frame) => {
+    setReading({ ...trackerRef.current.update(frame), levelDb: frame.levelDb });
+  }, []);
+  const { status, gateDb, resume } = usePitchListener({
+    enabled: true,
+    instrument,
+    sensitivity,
+    onFrame,
+    windowMs: TUNER_WINDOW_MS
+  });
+
   const targetIndex = chosenString ?? reading?.stringIndex ?? null;
   const targetMidi = targetIndex === null ? null : stringMidis[targetIndex];
   const cents = reading?.cents ?? null;
-  // Heard an octave high: show the meter the string's real octave, so the dial matches the words
-  const meterFrame = reading?.octaveSlip
-    ? { ...frame, frequency: frame.frequency && frame.frequency / 2, heldFrequency: frame.heldFrequency && frame.heldFrequency / 2 }
-    : frame;
-  const verdict = verdictFor(cents);
+  const verdict = verdictFor(reading);
 
   const label = (midi) => midiToNoteLabel(midi, noteDisplay);
   const target = targetMidi === null ? null : label(targetMidi);
@@ -58,10 +71,10 @@ function Tuner({ instrument, sensitivity, noteDisplay }) {
   return (
     <div className="flex flex-col items-center gap-4">
       <NoteMeter
-        frame={meterFrame}
+        reading={reading}
+        levelDb={reading?.levelDb}
         gateDb={gateDb}
         noteDisplay={noteDisplay}
-        targetMidi={targetMidi}
         inTuneCents={IN_TUNE_CENTS}
         className="w-full max-w-xs"
       />
@@ -73,7 +86,7 @@ function Tuner({ instrument, sensitivity, noteDisplay }) {
         </p>
         <p className="text-sm opacity-80 tabular-nums" aria-hidden="true">
           {target
-            ? <>Target {target.name}{target.octave} · {midiToFrequency(targetMidi).toFixed(1)} Hz{cents !== null && <> · {cents > 0 ? '+' : ''}{cents} cents</>}</>
+            ? <>Target {target.name}{target.octave} · {midiToFrequency(targetMidi).toFixed(1)} Hz{cents !== null && <> · {cents > 0 ? '+' : ''}{Math.round(cents)} cents</>}</>
             : ' '}
         </p>
       </div>

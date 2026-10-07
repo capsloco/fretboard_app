@@ -23,15 +23,29 @@ describe('TunerTracker', () => {
   it('ignores a stray frame but switches once another string holds for a few frames', () => {
     const tracker = new TunerTracker({ stringMidis: guitar, switchFrames: 3 });
     const readings = feed(tracker, [
-      ...note(45, 0, 5),
+      ...note(45, 10, 5),
       ...note(50, 0, 1), // one frame of D
-      ...note(45, 0, 2),
+      ...note(45, 10, 2),
       ...note(50, 0, 3) // D for real
     ]);
     expect(readings.slice(0, 10).map(r => r.stringIndex)).toEqual(Array(10).fill(1));
     expect(readings[10].stringIndex).toBe(2);
-    // The stray frame didn't move the needle either
-    expect(readings.slice(0, 8).every(r => Math.abs(r.cents) < 1)).toBe(true);
+    // While a change is undecided the last reading is held, not measured against the old string
+    expect(readings[5]).toMatchObject({ stringIndex: 1, live: false });
+    expect(readings[5].cents).toBeCloseTo(10, 0);
+    expect(readings.slice(8, 10).map(r => r.live)).toEqual([false, false]);
+    expect(readings.slice(0, 10).every(r => Math.abs(r.cents - 10) < 1)).toBe(true);
+    expect(readings[10]).toMatchObject({ live: true });
+    expect(readings[10].cents).toBeCloseTo(0, 0);
+  });
+
+  it('takes a new string at once after the last reading has cleared', () => {
+    const tracker = new TunerTracker({ stringMidis: guitar, holdMs: 1000 });
+    feed(tracker, note(45, 0, 5));
+    tracker.update({ frequency: null, time: 2000 }); // silence long enough to clear the reading
+    const next = tracker.update({ frequency: hz(50, 5), time: 2030 });
+    expect(next).toMatchObject({ stringIndex: 2, live: true });
+    expect(next.cents).toBeCloseTo(5, 0);
   });
 
   it('steadies a jittery needle without lagging a real change', () => {
@@ -94,6 +108,14 @@ describe('TunerTracker', () => {
     tracker.lock(null);
     const auto = feed(tracker, note(55.6, 0, 4), { startTime: 200 }).at(-1);
     expect(auto.stringIndex).toBe(3);
+  });
+
+  it('drops the previous string\u2019s reading when a string is locked', () => {
+    const tracker = new TunerTracker({ stringMidis: guitar, holdMs: 1000 });
+    feed(tracker, note(45, 20, 6)); // A string, 20 cents sharp
+    tracker.lock(2); // now tuning D, strings muted
+    const reading = tracker.update({ frequency: null, time: 300 });
+    expect(reading).toMatchObject({ stringIndex: 2, cents: null, live: false, inTune: false });
   });
 
   it('starts over when the strings change', () => {

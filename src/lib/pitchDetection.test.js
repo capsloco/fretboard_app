@@ -58,6 +58,30 @@ function halveRate(input) {
 
 const centsBetween = (frequency, reference) => 1200 * Math.log2(frequency / reference);
 
+/**
+ * A plucked string as a small mic hears it: weak fundamental, strong 2nd partial, slightly
+ * inharmonic partials that decay faster the higher they are, and some noise.
+ */
+function phonePluck(frequency, { amplitudes, inharmonicity, noise, decay, seed = 1, length = FRAME_SIZE }) {
+  const random = seededRandom(seed);
+  const phases = amplitudes.map(() => random() * 2 * Math.PI);
+  const output = new Float32Array(length);
+  for (let i = 0; i < length; i++) {
+    const t = i / SAMPLE_RATE;
+    let sample = noise * (random() * 2 - 1);
+    amplitudes.forEach((amp, k) => {
+      const partial = k + 1;
+      const stretched = frequency * partial * Math.sqrt(1 + inharmonicity * partial * partial);
+      sample += amp * Math.exp((-decay * t * partial) / 3) * Math.sin(2 * Math.PI * stretched * t + phases[k]);
+    });
+    output[i] = sample;
+  }
+  return output;
+}
+
+// A G3 that reads an octave high with the "first local minimum" rule, but plainly under the classic threshold
+const PHONE_G3 = { amplitudes: [0.16, 0.93, 0.1, 0.23, 0.02, 0.08], inharmonicity: 0.00165, noise: 0.32, decay: 4.31 };
+
 function frameAt(signal, seconds) {
   const start = Math.floor(seconds * SAMPLE_RATE);
   return signal.subarray(start, start + FRAME_SIZE);
@@ -87,6 +111,17 @@ describe('detectPitch', () => {
     const signal = harmonicTone(lowE, [0.15, 1, 0.7, 0.5, 0.3]);
     const pitch = detectPitch(signal, SAMPLE_RATE, { minFrequency: 27, maxFrequency: 415 });
     expect(Math.round(frequencyToMidi(pitch.frequency))).toBe(28);
+  });
+
+  it('reads exactly as classic YIN when a dip gets under its threshold', () => {
+    // The octave dip sits just above the threshold, the real one well under it: the real one wins,
+    // and with the clarity a clear note needs for practice grading
+    for (let seed = 1; seed <= 5; seed++) {
+      const signal = phonePluck(midiToFrequency(55), { ...PHONE_G3, seed });
+      const pitch = detectPitch(signal, SAMPLE_RATE, { minFrequency: 73, maxFrequency: 1400 });
+      expect(Math.round(frequencyToMidi(pitch.frequency)), `seed ${seed}`).toBe(55);
+      expect(pitch.clarity, `seed ${seed}`).toBeGreaterThan(0.85);
+    }
   });
 
   it('still reads a noisy string that classic YIN gives up on', () => {
@@ -222,6 +257,15 @@ describe('NoteTracker', () => {
     const tracker = new NoteTracker();
     const events = run(tracker, [...silence(3), ...note(C3, 5), ...silence(6), ...note(C3, 5)]);
     expect(events.map(e => e.midi)).toEqual([48, 48]);
+  });
+
+  it('counts a plucked string as a small mic hears it', () => {
+    const tracker = new NoteTracker();
+    const frames = Array.from({ length: 6 }, (_, i) => {
+      const pitch = detectPitch(phonePluck(midiToFrequency(55), { ...PHONE_G3, seed: i + 1 }), SAMPLE_RATE, { minFrequency: 73, maxFrequency: 1400 });
+      return { frequency: pitch.frequency, clarity: pitch.clarity, rms: 0.05 };
+    });
+    expect(run(tracker, [...silence(3), ...frames]).map(e => e.midi)).toEqual([55]);
   });
 
   it('treats an unclear pitch as silence', () => {

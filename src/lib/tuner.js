@@ -25,7 +25,9 @@ function medianOf(values) {
  * Turns pitch frames into tuner readings.
  *
  * - String: the nearest string to what is heard, kept until another string wins `switchFrames`
- *   frames running, so a stray frame doesn't flip the target. A locked string is always the target.
+ *   frames running, so a stray frame doesn't flip the target; while that is undecided the last
+ *   reading is held rather than measured against the wrong string. After the reading has cleared,
+ *   the next string heard is taken at once. A locked string is always the target.
  * - Cents: a `medianFrames` median drops single-frame glitches, then an exponential average
  *   (quicker when the pitch is clear) steadies the needle; a jump past `snapCents` is followed at once.
  * - Hold: when the pitch drops out (between plucks, or a frame too noisy to read), the last reading
@@ -54,6 +56,7 @@ export class TunerTracker {
     this.stringMidis = stringMidis;
     if (this.lockedIndex !== null && this.lockedIndex >= stringMidis.length) this.lockedIndex = null;
     this.stringIndex = null;
+    this.settled = false;
     this.pendingIndex = null;
     this.pendingCount = 0;
     this.last = null;
@@ -69,6 +72,9 @@ export class TunerTracker {
     this.pendingIndex = null;
     this.pendingCount = 0;
     if (locked !== null) this.stringIndex = locked;
+    // The previous target's reading must not be shown against the new one
+    this.last = null;
+    this.lastLiveTime = -Infinity;
     this.resetNeedle();
   }
 
@@ -90,18 +96,32 @@ export class TunerTracker {
     };
   }
 
-  /** The string to measure against for a heard pitch, with hysteresis in auto mode */
+  /** The last reading, held, while it is fresh enough; otherwise nothing */
+  heldReading(time) {
+    if (this.last && time - this.lastLiveTime <= this.holdMs) {
+      return { ...this.last, live: false, clarity: 0 };
+    }
+    this.last = null;
+    this.settled = false;
+    this.resetNeedle();
+    return this.idleReading();
+  }
+
+  /**
+   * The string to measure against for a heard pitch, with hysteresis in auto mode.
+   * @returns {number|null} null while a change of string is still undecided
+   */
   chooseString(midiFloat) {
     if (this.lockedIndex !== null) return this.lockedIndex;
     const nearest = readTuner(midiFloat, this.stringMidis).stringIndex;
-    if (this.stringIndex === null || nearest === this.stringIndex) {
+    if (!this.settled || nearest === this.stringIndex) {
       this.pendingIndex = null;
       this.pendingCount = 0;
       return nearest;
     }
     this.pendingCount = this.pendingIndex === nearest ? this.pendingCount + 1 : 1;
     this.pendingIndex = nearest;
-    if (this.pendingCount < this.switchFrames) return this.stringIndex;
+    if (this.pendingCount < this.switchFrames) return null;
     this.pendingIndex = null;
     this.pendingCount = 0;
     return nearest;
@@ -112,21 +132,16 @@ export class TunerTracker {
    * @returns {TunerReading}
    */
   update({ frequency, clarity = 1, time }) {
-    if (!frequency || clarity < this.minClarity || this.stringMidis.length === 0) {
-      if (this.last && time - this.lastLiveTime <= this.holdMs) {
-        return { ...this.last, live: false, clarity: 0 };
-      }
-      this.last = null;
-      this.resetNeedle();
-      return this.idleReading();
-    }
+    if (!frequency || clarity < this.minClarity || this.stringMidis.length === 0) return this.heldReading(time);
 
     const midiFloat = frequencyToMidi(frequency);
     const stringIndex = this.chooseString(midiFloat);
+    if (stringIndex === null) return this.heldReading(time);
     if (stringIndex !== this.stringIndex) {
       this.stringIndex = stringIndex;
       this.resetNeedle();
     }
+    this.settled = true;
     const { cents: rawCents, octaveSlip } = readTuner(midiFloat, this.stringMidis, stringIndex);
 
     this.recentCents.push(rawCents);

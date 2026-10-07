@@ -36,15 +36,16 @@ All audio processing happens in your browser. Nothing is recorded or uploaded.
 
 1. The mic is opened with the browser's voice-call processing (echo cancellation, noise suppression, auto gain)
    switched off, since those smear pitch and pump the level of a plucked string.
-2. About 30 times a second, the newest ~85 ms of audio (~160 ms in the tuner) is downsampled to ~22 kHz and run
-   through the [YIN](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf) pitch detector, limited to the range your
-   instrument can play (a 5-string bass's low B up to a guitar's 24th fret). Classic YIN gives up when nothing dips
-   under its threshold, which on a small mic is most of the time a string rings; this one takes the shortest lag
-   whose dip is nearly as deep as the best one and reports how clear the pitch was. The estimate is then sharpened
+2. About 30 times a second, the newest ~100 ms of audio (a little more for a bass's low strings) is downsampled to
+   ~22 kHz and run through the [YIN](http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf) pitch detector, limited to
+   the range your instrument can play (a 5-string bass's low B up to a guitar's 24th fret). The tuner keeps a
+   longer buffer than practice does, so a low string has several periods in view. Classic YIN gives up when nothing dips
+   under its threshold, which on a small mic is most of the time a string rings; this one falls back to the
+   shortest lag whose dip is nearly as deep as the best one, and reports how clear the pitch was. The estimate is then sharpened
    on the full-rate audio, which is worth a few cents on the high strings.
 3. A note tracker turns those readings into "note played" events: a pitch has to hold steady for about 100 ms,
    a ringing string isn't counted twice, re-plucking the same note counts again, and a pitch change with no fresh
-   attack has to hold much longer. Readings that aren't clear enough count as silence.
+   attack has to hold much longer. Readings that aren't clear enough count as silence; the meter shows them dimmed.
 4. The event is graded against the prompt. Octaves come from the tuning: each string's octave is inferred from
    where that string sits in standard tuning (Drop D's low string is D2, a 5-string bass's low B is B0).
 
@@ -55,8 +56,9 @@ has sat in the band for a moment. A string heard an octave high, which phone mic
 that string.
 
 Code: [`src/lib/pitchDetection.js`](src/lib/pitchDetection.js), [`src/lib/tuner.js`](src/lib/tuner.js) and
-`gradeDetectedNote` in [`src/lib/fretLogic.js`](src/lib/fretLogic.js). All are covered by tests that synthesise
-plucked strings for every note on a guitar and a 5-string bass.
+`gradeDetectedNote` in [`src/lib/fretLogic.js`](src/lib/fretLogic.js). The detector is tested on synthesised
+plucked strings for every note on a guitar and a 5-string bass, and on a pluck as a phone mic hears it; the note
+and tuner trackers are tested on sequences of readings.
 
 **Limits worth knowing**
 

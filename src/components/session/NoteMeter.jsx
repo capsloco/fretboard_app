@@ -37,7 +37,8 @@ const levelPercent = (db) =>
  * the window shows the note it hears.
  *
  * Fed one of two ways:
- * - frame:   a listener frame; the needle measures against the nearest note (practice screen)
+ * - frame:   a listener frame; the needle measures against the nearest note (practice screen).
+ *            A pitch not clear enough to count as a note shows dimmed, like a held one.
  * - reading: { cents, heardMidi, live, inTune } worked out by the caller, e.g. the tuner
  *            measuring against its target string. The needle pins at the end of the scale
  *            past ±50 cents and dims while a reading is only being held.
@@ -68,7 +69,7 @@ export default function NoteMeter({
       const midiFloat = frequencyToMidi(frequency);
       heardMidi = Math.round(midiFloat);
       cents = (midiFloat - heardMidi) * 100;
-      live = Boolean(frame.frequency);
+      live = Boolean(frame.frequency) && frame.clear !== false;
     }
   }
 

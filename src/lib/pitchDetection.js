@@ -10,11 +10,11 @@
 
 import { frequencyToMidi } from './fretLogic';
 
-// A dip in YIN's normalised difference this deep is the pitch outright (the classic threshold)...
+// A dip in YIN's normalised difference this deep is the pitch outright (the classic threshold).
 const YIN_THRESHOLD = 0.15;
-// ...and so is any dip within this of the deepest one, taking the shortest lag among them.
-// A phone mic rarely dips under the classic threshold, but the true period still makes the
-// deepest dip; its sub-harmonics (2x, 3x the period) dip as deep and lose on lag.
+// When nothing dips that deep (a phone mic, most of the time a string rings), any dip within
+// this of the deepest one will do, taking the shortest lag among them: the true period still
+// makes the deepest dip, and its sub-harmonics (2x, 3x the period) dip as deep but lose on lag.
 const OCTAVE_MARGIN = 0.1;
 // Deepest dip above this: the buffer isn't periodic enough to call a pitch
 const MAX_DIFFERENCE = 0.5;
@@ -75,13 +75,33 @@ function interpolateMinimum(values, index) {
 }
 
 /**
+ * The lag to call the pitch for a limit: the bottom of the first run of lags whose difference
+ * is under it. Taking the whole run rather than the first local minimum keeps a ripple on the
+ * way down from stealing the pick from the real dip just after it.
+ * @returns {number} the lag, or -1 when nothing dips under the limit
+ */
+function firstDipUnder(cmnd, tauMin, tauMax, limit) {
+  for (let t = tauMin; t <= tauMax; t++) {
+    if (cmnd[t] >= limit) continue;
+    let bottom = t;
+    while (t < tauMax && cmnd[t + 1] < limit) {
+      t++;
+      if (cmnd[t] < cmnd[bottom]) bottom = t;
+    }
+    return bottom;
+  }
+  return -1;
+}
+
+/**
  * Estimate the fundamental frequency of `samples` with YIN.
  *
  * Classic YIN takes the first dip under a fixed threshold and gives up when there is none,
- * which on a phone mic means no reading for most of the time a string rings. This takes the
- * shortest lag whose dip is under the threshold OR nearly as deep as the deepest dip, and only
- * gives up when the deepest dip is shallow (not periodic). `clarity` (1 = perfectly periodic)
- * lets callers be as strict as they need.
+ * which on a phone mic means no reading for most of the time a string rings. This takes that
+ * dip when there is one (so a clear note reads exactly as plain YIN would), and otherwise the
+ * shortest lag whose dip is nearly as deep as the deepest, giving up only when the deepest dip
+ * is shallow (not periodic). `clarity` (1 = perfectly periodic) lets callers be as strict as
+ * they need: a clear note scores above 1 - threshold, a lenient pick below it.
  *
  * @returns {{ frequency: number, clarity: number } | null} null when the buffer isn't periodic
  */
@@ -105,15 +125,9 @@ export function detectPitch(samples, sampleRate, {
   }
   if (deepest > maxDifference) return null;
 
-  // Step 4: the shortest lag with a dip (a local minimum) under the limit
-  const limit = Math.max(threshold, deepest + octaveMargin);
-  let tau = -1;
-  for (let t = tauMin; t < tauMax; t++) {
-    if (cmnd[t] < limit && cmnd[t] <= cmnd[t - 1] && cmnd[t] < cmnd[t + 1]) {
-      tau = t;
-      break;
-    }
-  }
+  // Step 4: the first dip under the classic threshold, else the first nearly as deep as the deepest
+  let tau = firstDipUnder(cmnd, tauMin, tauMax, threshold);
+  if (tau === -1) tau = firstDipUnder(cmnd, tauMin, tauMax, deepest + octaveMargin);
   if (tau === -1) return null;
 
   return { frequency: sampleRate / interpolateMinimum(cmnd, tau), clarity: 1 - cmnd[tau] };
@@ -290,6 +304,8 @@ export function isPitchDetectionSupported() {
 
 /**
  * Listens to the microphone and reports frames (for meters) and note events.
+ * A frame's `clear` flag says whether its pitch was clear enough for the note
+ * tracker to count, so a meter can show a faint reading that won't be graded.
  * Browser voice-call processing (echo cancellation, noise suppression, auto
  * gain) is switched off: it smears pitch and pumps the level of a guitar.
  *
@@ -399,6 +415,7 @@ export class PitchListener {
       frequency: pitch?.frequency ?? null,
       heldFrequency: held, // last pitch, kept briefly so displays don't flicker
       clarity: pitch?.clarity ?? 0,
+      clear: Boolean(pitch) && pitch.clarity >= this.tracker.minClarity, // clear enough to count as a note
       rms,
       levelDb,
       time: now

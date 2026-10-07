@@ -36,27 +36,50 @@ const levelPercent = (db) =>
  * Analog-style meter: the needle shows how sharp or flat the note is,
  * the window shows the note it hears.
  *
- * targetMidi: measure against this pitch instead of the nearest note (the tuner);
- *             the needle pins at the end of the scale when it's more than 50 cents off
+ * Fed one of two ways:
+ * - frame:   a listener frame; the needle measures against the nearest note (practice screen).
+ *            A pitch not clear enough to count as a note shows dimmed, like a held one.
+ * - reading: { cents, heardMidi, live, inTune } worked out by the caller, e.g. the tuner
+ *            measuring against its target string. The needle pins at the end of the scale
+ *            past ±50 cents and dims while a reading is only being held.
+ * levelDb (defaults to the frame's) and gateDb drive the level bar and the signal lamp.
  * inTuneCents: half-width of the in-tune band
  */
-export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', targetMidi = null, inTuneCents = 10, className = '' }) {
-  const frequency = frame?.frequency ?? frame?.heldFrequency ?? null;
-  const isLive = Boolean(frame?.frequency);
-
-  let angle = REST_ANGLE;
-  let label = null;
-  if (frequency) {
-    const midiFloat = frequencyToMidi(frequency);
-    const midi = Math.round(midiFloat);
-    const cents = (midiFloat - (targetMidi ?? midi)) * 100;
-    angle = Math.max(-50, Math.min(50, cents)) * DEGREES_PER_CENT;
-    label = midiToNoteLabel(midi, noteDisplay);
+export default function NoteMeter({
+  frame,
+  reading,
+  levelDb,
+  gateDb,
+  noteDisplay = 'sharps',
+  inTuneCents = 10,
+  className = ''
+}) {
+  let cents = null;
+  let heardMidi = null;
+  let live = false;
+  let inTune = false;
+  if (reading) {
+    cents = reading.cents ?? null;
+    heardMidi = reading.heardMidi ?? null;
+    live = Boolean(reading.live);
+    inTune = Boolean(reading.inTune);
+  } else if (frame) {
+    const frequency = frame.frequency ?? frame.heldFrequency ?? null;
+    if (frequency) {
+      const midiFloat = frequencyToMidi(frequency);
+      heardMidi = Math.round(midiFloat);
+      cents = (midiFloat - heardMidi) * 100;
+      live = Boolean(frame.frequency) && frame.clear !== false;
+    }
   }
 
-  const level = levelPercent(frame?.levelDb ?? -Infinity);
+  const label = heardMidi === null ? null : midiToNoteLabel(heardMidi, noteDisplay);
+  // Rounded so a needle settling on zero doesn't write 1e-20deg into the style
+  const angle = cents === null ? REST_ANGLE : Math.round(Math.max(-50, Math.min(50, cents)) * DEGREES_PER_CENT * 100) / 100;
+  const db = levelDb ?? frame?.levelDb ?? -Infinity;
+  const level = levelPercent(db);
   const gate = levelPercent(gateDb);
-  const signalOn = Number.isFinite(frame?.levelDb) && frame.levelDb >= gateDb;
+  const signalOn = Number.isFinite(db) && db >= gateDb;
   const band = inTuneCents * DEGREES_PER_CENT;
 
   return (
@@ -64,27 +87,48 @@ export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', targe
       {/* Face */}
       <div className="relative bg-(image:--meter-face) text-(--meter-ink)">
         <svg viewBox="0 0 200 132" className="block w-full" role="img" aria-label={label ? `Hearing ${label.name}${label.octave}` : 'No note detected'}>
-          {/* In-tune band */}
-          <path d={arc(-band, band, SCALE_RADIUS)} className="stroke-accent" strokeWidth="8" fill="none" opacity="0.85" />
+          {/* In-tune band: lights up once the note has settled inside it */}
+          <path
+            d={arc(-band, band, SCALE_RADIUS)}
+            className={`transition-opacity duration-150 ${inTune ? 'stroke-success' : 'stroke-accent'}`}
+            strokeWidth="8"
+            fill="none"
+            opacity={inTune ? 1 : 0.85}
+          />
           {/* Scale */}
           <path d={arc(-45, 45, SCALE_RADIUS)} stroke="currentColor" strokeWidth="1.2" fill="none" />
-          {TICKS.map((cents) => {
-            const major = cents % 50 === 0;
-            const a = cents * DEGREES_PER_CENT;
+          {TICKS.map((tick) => {
+            const major = tick % 50 === 0;
+            const a = tick * DEGREES_PER_CENT;
             const outer = polar(a, SCALE_RADIUS);
             const inner = polar(a, SCALE_RADIUS - (major ? 12 : 7));
             return (
-              <line key={cents} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="currentColor" strokeWidth={major ? 2 : 1.1} />
+              <line key={tick} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="currentColor" strokeWidth={major ? 2 : 1.1} />
             );
           })}
           <text {...textAt(-45, SCALE_RADIUS + 10)} className="font-display" fontSize="13" fontWeight="700" fill="currentColor">♭</text>
           <text {...textAt(45, SCALE_RADIUS + 10)} className="font-display" fontSize="13" fontWeight="700" fill="currentColor">♯</text>
-          <text x={PIVOT.x} y={PIVOT.y - SCALE_RADIUS - 6} textAnchor="middle" className="font-display" fontSize="9" fontWeight="700" letterSpacing="1.5" fill="currentColor">IN TUNE</text>
+          <text
+            x={PIVOT.x}
+            y={PIVOT.y - SCALE_RADIUS - 6}
+            textAnchor="middle"
+            className={`font-display ${inTune ? 'fill-success' : ''}`}
+            fontSize="9"
+            fontWeight="700"
+            letterSpacing="1.5"
+            fill="currentColor"
+          >
+            IN TUNE
+          </text>
 
-          {/* Needle */}
+          {/* Needle: quick to follow, dimmed while the last reading is only being held */}
           <g
-            className="transition-transform duration-150 ease-out"
-            style={{ transform: `rotate(${angle}deg)`, transformOrigin: `${PIVOT.x}px ${PIVOT.y}px` }}
+            className="transition-[transform,opacity] duration-100 ease-out"
+            style={{
+              transform: `rotate(${angle}deg)`,
+              transformOrigin: `${PIVOT.x}px ${PIVOT.y}px`,
+              opacity: cents !== null && !live ? 0.5 : 1
+            }}
           >
             <line x1={PIVOT.x} y1={PIVOT.y} x2={PIVOT.x} y2={PIVOT.y - SCALE_RADIUS + 3} className="stroke-secondary" strokeWidth="2" strokeLinecap="round" />
           </g>
@@ -95,11 +139,11 @@ export default function NoteMeter({ frame, gateDb, noteDisplay = 'sharps', targe
             x={PIVOT.x}
             y="124"
             textAnchor="middle"
-            className="font-display"
+            className={`font-display ${inTune ? 'fill-success' : ''}`}
             fill="#ede3ce"
             fontSize="30"
             fontWeight="800"
-            opacity={label ? (isLive ? 1 : 0.5) : 0.3}
+            opacity={label ? (live ? 1 : 0.5) : 0.3}
           >
             {label ? label.name : '—'}
             {label && <tspan fontSize="16" dy="-11">{label.octave}</tspan>}

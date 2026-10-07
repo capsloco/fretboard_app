@@ -527,6 +527,11 @@ export function getStringMidis(instrument) {
 // can hear it an octave high. A tuner reading that fits a string's octave counts as that
 // string, but a plain match wins when both fit.
 const OCTAVE_SLIP_PENALTY = 0.5;
+// How far out of tune a string heard an octave high may be and still count as that string.
+// Picking the string by ear needs it close (further out, the nearest string is a better bet);
+// a string the player locked is what they say it is, so a slip may be well out of tune.
+const OCTAVE_SLIP_RANGE = 1;
+const LOCKED_OCTAVE_SLIP_RANGE = 6;
 
 /**
  * What a tuner should show for a heard (fractional) MIDI pitch: which open string it is and
@@ -537,11 +542,12 @@ const OCTAVE_SLIP_PENALTY = 0.5;
  */
 export function readTuner(midiFloat, stringMidis, lockedIndex = null) {
   const indexes = lockedIndex === null ? stringMidis.map((_, i) => i) : [lockedIndex];
+  const slipRange = lockedIndex === null ? OCTAVE_SLIP_RANGE : LOCKED_OCTAVE_SLIP_RANGE;
   let best = null;
   for (const stringIndex of indexes) {
     for (const octaveSlip of [false, true]) {
       const offset = midiFloat - (octaveSlip ? 12 : 0) - stringMidis[stringIndex];
-      if (octaveSlip && Math.abs(offset) >= 1) continue;
+      if (octaveSlip && Math.abs(offset) >= slipRange) continue;
       const cost = Math.abs(offset) + (octaveSlip ? OCTAVE_SLIP_PENALTY : 0);
       if (!best || cost < best.cost) best = { stringIndex, cents: Math.round(offset * 100), octaveSlip, cost };
     }

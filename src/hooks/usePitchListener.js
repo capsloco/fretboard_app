@@ -10,17 +10,20 @@ export function sensitivityToGateDb(sensitivity) {
 /**
  * Runs note detection on the microphone while `enabled` is true.
  *
- * status: 'off' | 'starting' | 'listening' | 'suspended' | 'denied' | 'unavailable' | 'unsupported'
- * frame:  latest analysis frame ({ frequency, levelDb, ... }) for meters, ~30 per second
+ * status:   'off' | 'starting' | 'listening' | 'suspended' | 'denied' | 'unavailable' | 'unsupported'
+ * frame:    latest analysis frame ({ frequency, clarity, levelDb, ... }) for meters, ~30 per second
+ * onFrame:  also called with every frame, for callers that process each one (the tuner)
+ * windowMs: how much audio each analysis looks at; the tuner asks for more than practice does
  */
-export function usePitchListener({ enabled, instrument, sensitivity, onNote }) {
+export function usePitchListener({ enabled, instrument, sensitivity, onNote, onFrame, windowMs }) {
   const [status, setStatus] = useState('off');
   const [frame, setFrame] = useState(null);
   const listenerRef = useRef(null);
-  const onNoteRef = useRef(onNote);
+  const callbacksRef = useRef({ onNote, onFrame });
+  const windowMsRef = useRef(windowMs);
 
   useEffect(() => {
-    onNoteRef.current = onNote;
+    callbacksRef.current = { onNote, onFrame };
   });
 
   const { minFrequency, maxFrequency } = useMemo(
@@ -38,8 +41,12 @@ export function usePitchListener({ enabled, instrument, sensitivity, onNote }) {
 
     let cancelled = false;
     const listener = new PitchListener({
-      onFrame: setFrame,
-      onNote: (note) => onNoteRef.current?.(note)
+      windowMs: windowMsRef.current,
+      onFrame: (nextFrame) => {
+        setFrame(nextFrame);
+        callbacksRef.current.onFrame?.(nextFrame);
+      },
+      onNote: (note) => callbacksRef.current.onNote?.(note)
     });
     listenerRef.current = listener;
     setStatus('starting');

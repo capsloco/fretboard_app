@@ -122,6 +122,12 @@ describe('readTuner', () => {
     expect(read(47, 1)).toEqual({ stringIndex: 1, cents: 200, octaveSlip: false });
     expect(read(40.5, 1)).toMatchObject({ stringIndex: 1, cents: -450 });
   });
+
+  it('lets a locked string heard an octave high be well out of tune', () => {
+    // A string 150 cents flat and heard an octave up: by ear that is a sharp G, but the player said A
+    expect(read(55.5)).toMatchObject({ stringIndex: 3, cents: 50, octaveSlip: false });
+    expect(read(55.5, 1)).toEqual({ stringIndex: 1, cents: -150, octaveSlip: true });
+  });
 });
 
 describe('string prompts', () => {
